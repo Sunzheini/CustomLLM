@@ -4,7 +4,7 @@ import ollama
 client = ollama.Client()
 
 model = "codellama"  # Replace with the model name you're using
-prompt = "What is 1 + 1?"  # Replace with your input prompt
+prompt = "Explain python dict in 1 sentence"  # Replace with your input prompt
 
 response = client.generate(
     model=model,
