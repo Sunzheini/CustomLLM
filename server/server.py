@@ -7,7 +7,10 @@ url = "http://localhost:11434/api/chat"
 # Define the payload (your input prompt)
 payload = {
     "model": "codellama",  # Replace with the model name you're using
-    "messages": [{"role": "user", "content": "What is 1 + 1?"}],
+    "messages": [{
+        "role": "user",
+        "content": "What is 1 + 1?",
+    }],
 }
 
 # Send the HTTP POST request with streaming enabled
