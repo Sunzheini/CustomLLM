@@ -7,19 +7,32 @@ from vector import retriever
 model = OllamaLLM(model="codellama")
 
 # The prompt template to format the questions and context for the LLM
+# template = """
+# You are an expert in answering questions about a pizza restaurant
+#
+# Here are some relevant reviews: {reviews}
+#
+# Here is the question to answer: {question}
+# """
+
 template = """
-You are an expert in answering questions about a pizza restaurant
+You are an expert in {domain}. Answer questions based on the provided context.
 
-Here are some relevant reviews: {reviews}
+Context: {reviews}
 
-Here is the question to answer: {question}
+Question: {question}
 """
+
+# How many days are mentioned?
+domain = "human resources"
 
 # Create a chat prompt template using the defined template
 prompt = ChatPromptTemplate.from_template(template)
 
 # Combine the prompt and model into a chain to process the input
-chain = prompt | model
+chain = {"reviews": lambda x: x["reviews"],
+         "question": lambda x: x["question"],
+         "domain": lambda _: domain} | prompt | model
 
 # This script allows you to ask questions and get answers based on the documents stored in the vector database.
 while True:
