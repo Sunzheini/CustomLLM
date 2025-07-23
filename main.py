@@ -6,15 +6,6 @@ from vector import retriever
 # This script uses the Ollama LLM to answer questions
 model = OllamaLLM(model="codellama")
 
-# The prompt template to format the questions and context for the LLM
-# template = """
-# You are an expert in answering questions about a pizza restaurant
-#
-# Here are some relevant reviews: {reviews}
-#
-# Here is the question to answer: {question}
-# """
-
 template = """
 You are an expert in {domain}. Answer questions based on the provided context.
 
@@ -23,7 +14,7 @@ Context: {reviews}
 Question: {question}
 """
 
-# How many days are mentioned?
+# summarize work experience
 domain = "human resources"
 
 # Create a chat prompt template using the defined template
