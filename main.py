@@ -3,6 +3,8 @@ from random import randint
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+from external_llm.external_manual import ExternalManual
 from ollama_local_llm.ollama_manual import OllamaManual
 from ollama_local_llm.ollama_automatic import OllamaAutomatic
 
@@ -12,14 +14,15 @@ from support.measure_and_print_time_decorator import measure_and_print_time_deco
 
 BASE_DIR = Path(__file__).resolve().parent
 
-# Load environment variables from .env file (for local development)
 if os.path.exists(os.path.join(BASE_DIR, '.env')):
     load_dotenv()
 
-open_ai_api_key = os.getenv('OPEN_AI_API_KEY')
-print(open_ai_api_key)
+open_ai_api_key = os.getenv('OPENAI_API_KEY')
 
 
+# ------------------------------------------------------------------------------
+# Ollama
+# ------------------------------------------------------------------------------
 @measure_and_print_time_decorator
 def function_1():
     """Ollama manual HTTP requests with streaming"""
@@ -97,6 +100,15 @@ def function_4():
         for i, msg in enumerate(messages):
             print(f"{i + 1}. {msg['role'].upper()}: {msg['content']}")
 
+# ------------------------------------------------------------------------------
+# OPENAI
+# ------------------------------------------------------------------------------
+@measure_and_print_time_decorator
+def function_5():
+    external_api_manager = ExternalManual()
+
+# ------------------------------------------------------------------------------
+
 
 if __name__ == "__main__":
     menu = CommandMenu({
@@ -104,5 +116,7 @@ if __name__ == "__main__":
         '2': function_2,
         '3': function_3,
         '4': function_4,
+
+        '5': function_5,
     })
     menu.run()
