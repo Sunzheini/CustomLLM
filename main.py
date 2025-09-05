@@ -1,10 +1,26 @@
-from core.command_menu import CommandMenu
-from ollama_local_llm.ollama_manual import OllamaManual
-from ollama_local_llm.ollama_automatic import OllamaAutomatic  # New import
-
+import os
 from random import randint
+from pathlib import Path
+
+from dotenv import load_dotenv
+from ollama_local_llm.ollama_manual import OllamaManual
+from ollama_local_llm.ollama_automatic import OllamaAutomatic
+
+from core.command_menu import CommandMenu
+from support.measure_and_print_time_decorator import measure_and_print_time_decorator
 
 
+BASE_DIR = Path(__file__).resolve().parent
+
+# Load environment variables from .env file (for local development)
+if os.path.exists(os.path.join(BASE_DIR, '.env')):
+    load_dotenv()
+
+open_ai_api_key = os.getenv('OPEN_AI_API_KEY')
+print(open_ai_api_key)
+
+
+@measure_and_print_time_decorator
 def function_1():
     """Ollama manual HTTP requests with streaming"""
     ollama_manual = OllamaManual(model="codellama")
@@ -22,6 +38,7 @@ def function_1():
         print(f"\nFull response received: {len(response)} characters")
 
 
+@measure_and_print_time_decorator
 def function_2():
     """Ollama using official client - Basic generation"""
     ollama_client = OllamaAutomatic(model="codellama")
@@ -36,6 +53,7 @@ def function_2():
         print(f"\nFull response length: {len(response)} characters")
 
 
+@measure_and_print_time_decorator
 def function_3():
     """Ollama using official client - Streaming generation"""
     ollama_client = OllamaAutomatic(model="codellama")
@@ -52,6 +70,7 @@ def function_3():
     print(f"\nFull streamed response length: {len(full_response)} characters")
 
 
+@measure_and_print_time_decorator
 def function_4():
     """Ollama using official client - Chat with history"""
     ollama_client = OllamaAutomatic(model="codellama")
