@@ -1,41 +1,89 @@
-from langchain_ollama.llms import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate
-from vector import retriever
+from core.command_menu import CommandMenu
+from ollama_local_llm.ollama_manual import OllamaManual
+from ollama_local_llm.ollama_automatic import OllamaAutomatic  # New import
+
+from random import randint
 
 
-# This script uses the Ollama LLM to answer questions
-model = OllamaLLM(model="codellama")
+def function_1():
+    """Ollama manual HTTP requests with streaming"""
+    ollama_manual = OllamaManual(model="codellama")
 
-template = """
-You are an expert in {domain}. Answer questions based on the provided context.
+    num = randint(1, 10)
+    messages = [
+        {
+            "role": "user",
+            "content": f"What is 1 + {num}? Please explain step by step.",
+        }
+    ]
 
-Context: {reviews}
+    response = ollama_manual.send_request(messages)
+    if response:
+        print(f"\nFull response received: {len(response)} characters")
 
-Question: {question}
-"""
 
-# summarize work experience
-domain = "human resources"
+def function_2():
+    """Ollama using official client - Basic generation"""
+    ollama_client = OllamaAutomatic(model="codellama")
 
-# Create a chat prompt template using the defined template
-prompt = ChatPromptTemplate.from_template(template)
+    num = randint(1, 10)
+    prompt = f"What is 1 + {num}? Please explain step by step."
 
-# Combine the prompt and model into a chain to process the input
-chain = {"reviews": lambda x: x["reviews"],
-         "question": lambda x: x["question"],
-         "domain": lambda _: domain} | prompt | model
+    response = ollama_client.generate_response(prompt)
+    if response:
+        print("\nResponse from Ollama (official client):")
+        print(response)
+        print(f"\nFull response length: {len(response)} characters")
 
-# This script allows you to ask questions and get answers based on the documents stored in the vector database.
-while True:
-    print("\n\n-------------------------------")
-    question = input("Ask your question (q to quit): ")
-    print("\n\n")
-    if question == "q":
-        break
 
-    # Retrieve relevant documents from the vector store based on the question
-    reviews = retriever.invoke(question)
+def function_3():
+    """Ollama using official client - Streaming generation"""
+    ollama_client = OllamaAutomatic(model="codellama")
 
-    # Invoke the chain with the retrieved documents and the question to get an answer
-    result = chain.invoke({"reviews": reviews, "question": question})
-    print(result)
+    num = randint(1, 10)
+    prompt = f"What is 1 + {num}? Please explain step by step."
+
+    print("Streaming response:")
+    full_response = ""
+    for chunk in ollama_client.stream_generate(prompt):
+        if chunk and isinstance(chunk, str):
+            full_response += chunk
+
+    print(f"\nFull streamed response length: {len(full_response)} characters")
+
+
+def function_4():
+    """Ollama using official client - Chat with history"""
+    ollama_client = OllamaAutomatic(model="codellama")
+
+    messages = [
+        {"role": "user", "content": "What is 2 + 2?"},
+        {"role": "assistant", "content": "2 + 2 equals 4."},
+        {"role": "user", "content": "Now multiply that by 3."}
+    ]
+
+    # Print the entire conversation first
+    print("Full conversation history:")
+    for i, msg in enumerate(messages):
+        print(f"{i + 1}. {msg['role'].upper()}: {msg['content']}")
+
+    print("\n--- Generating next response ---")
+
+    response = ollama_client.chat(messages)
+    if response:
+        # Add the new response to the conversation
+        messages.append({"role": "assistant", "content": response})
+
+        print("\nUpdated conversation:")
+        for i, msg in enumerate(messages):
+            print(f"{i + 1}. {msg['role'].upper()}: {msg['content']}")
+
+
+if __name__ == "__main__":
+    menu = CommandMenu({
+        '1': function_1,
+        '2': function_2,
+        '3': function_3,
+        '4': function_4,
+    })
+    menu.run()
