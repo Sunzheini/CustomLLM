@@ -129,15 +129,15 @@ def function_5():
         template=summary_template
     )
 
-    # llm = ChatOpenAI(
-    #     temperature=0,          # 0 for deterministic, 1 for creative
-    #     model="gpt-4.1-mini"    # models: https://platform.openai.com/settings/organization/limits
-    # )                           # usage: https://platform.openai.com/settings/organization/usage
+    llm = ChatOpenAI(
+        temperature=0,          # 0 for deterministic, 1 for creative
+        model="gpt-4.1-mini"    # models: https://platform.openai.com/settings/organization/limits
+    )                           # usage: https://platform.openai.com/settings/organization/usage
 
-    llm = ChatOllama(
-        temperature=0,
-        model="gemma3:270m"       # small model
-    )
+    # llm = ChatOllama(
+    #     temperature=0,
+    #     model="gemma3:270m"       # small model
+    # )
 
     # llm = ChatOllama(
     #     temperature=0,
