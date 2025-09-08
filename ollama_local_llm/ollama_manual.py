@@ -3,7 +3,7 @@ import json
 
 
 class OllamaManual:
-    def __init__(self, model="codellama"):
+    def __init__(self, model="gemma3:270m"):
         self.model = model
         self.ollama_local_server_url = "http://localhost:11434"
         self.ollama_local_server_api_url = f"{self.ollama_local_server_url}/api/chat"

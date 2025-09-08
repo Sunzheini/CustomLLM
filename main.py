@@ -3,7 +3,9 @@ from random import randint
 from pathlib import Path
 
 from dotenv import load_dotenv
+from langchain_core.messages import AIMessage
 from langchain_core.prompts import PromptTemplate
+from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from sympy.physics.units import temperature
 
@@ -21,6 +23,7 @@ if os.path.exists(os.path.join(BASE_DIR, '.env')):
     load_dotenv()
 
 open_ai_api_key = os.getenv('OPENAI_API_KEY')
+langsmith_api_key = os.getenv('LANGSMITH_API_KEY')
 
 
 # ------------------------------------------------------------------------------
@@ -29,7 +32,7 @@ open_ai_api_key = os.getenv('OPENAI_API_KEY')
 @measure_and_print_time_decorator
 def function_1():
     """Ollama manual HTTP requests with streaming"""
-    ollama_manual = OllamaManual(model="codellama")
+    ollama_manual = OllamaManual(model="gemma3:270m")
 
     num = randint(1, 10)
     messages = [
@@ -47,7 +50,7 @@ def function_1():
 @measure_and_print_time_decorator
 def function_2():
     """Ollama using official client - Basic generation"""
-    ollama_client = OllamaAutomatic(model="codellama")
+    ollama_client = OllamaAutomatic(model="gemma3:270m")
 
     num = randint(1, 10)
     prompt = f"What is 1 + {num}? Please explain step by step."
@@ -62,7 +65,7 @@ def function_2():
 @measure_and_print_time_decorator
 def function_3():
     """Ollama using official client - Streaming generation"""
-    ollama_client = OllamaAutomatic(model="codellama")
+    ollama_client = OllamaAutomatic(model="gemma3:270m")
 
     num = randint(1, 10)
     prompt = f"What is 1 + {num}? Please explain step by step."
@@ -79,7 +82,7 @@ def function_3():
 @measure_and_print_time_decorator
 def function_4():
     """Ollama using official client - Chat with history"""
-    ollama_client = OllamaAutomatic(model="codellama")
+    ollama_client = OllamaAutomatic(model="gemma3:270m")
 
     messages = [
         {"role": "user", "content": "What is 2 + 2?"},
@@ -126,10 +129,25 @@ def function_5():
         template=summary_template
     )
 
-    llm = ChatOpenAI(
-        temperature=0,          # 0 for deterministic, 1 for creative
-        model="gpt-4.1-mini"    # models: https:    //platform.openai.com/settings/organization/limits
-    )                           # usage: https://platform.openai.com/settings/organization/usage
+    # llm = ChatOpenAI(
+    #     temperature=0,          # 0 for deterministic, 1 for creative
+    #     model="gpt-4.1-mini"    # models: https://platform.openai.com/settings/organization/limits
+    # )                           # usage: https://platform.openai.com/settings/organization/usage
+
+    llm = ChatOllama(
+        temperature=0,
+        model="gemma3:270m"       # small model
+    )
+
+    # llm = ChatOllama(
+    #     temperature=0,
+    #     model="gpt-oss:20b"       # large model, dont run until 32GB RAM
+    # )
+
+    # llm = ChatOllama(
+    #     temperature=0,
+    #     model="gemma3:4b"           # medium, slow
+    # )
 
     chain = summary_prompt_template | llm   # output of one is input to the next
 

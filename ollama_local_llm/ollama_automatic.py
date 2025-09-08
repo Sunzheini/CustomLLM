@@ -6,7 +6,7 @@ Uses the official Ollama Python client to interact with a local Ollama server.
 
 
 class OllamaAutomatic:
-    def __init__(self, model="codellama", host="http://localhost:11434"):
+    def __init__(self, model="gemma3:270m", host="http://localhost:11434"):
         """
         Initialize the Ollama client
 
