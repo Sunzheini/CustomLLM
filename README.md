@@ -12,3 +12,7 @@ ollama models: https://ollama.com/library
 
 `ollama ps`                     # list running models
 `ollama stop gemma3:270m`       # stop a running model
+
+# OpenAI
+models: https://platform.openai.com/settings/organization/limits
+usage: https://platform.openai.com/settings/organization/usage

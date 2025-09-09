@@ -1,17 +1,9 @@
 import os
-from random import randint
 from pathlib import Path
 
 from dotenv import load_dotenv
-from langchain_core.messages import AIMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
-from sympy.physics.units import temperature
-
-from external_llm.external_manual import ExternalManual
-from ollama_local_llm.ollama_manual import OllamaManual
-from ollama_local_llm.ollama_automatic import OllamaAutomatic
 
 from core.command_menu import CommandMenu
 from support.measure_and_print_time_decorator import measure_and_print_time_decorator
@@ -24,95 +16,11 @@ if os.path.exists(os.path.join(BASE_DIR, '.env')):
 
 open_ai_api_key = os.getenv('OPENAI_API_KEY')
 langsmith_api_key = os.getenv('LANGSMITH_API_KEY')
+tavily_api_key = os.getenv('TAVILY_API_KEY')
 
 
-# ------------------------------------------------------------------------------
-# Ollama
-# ------------------------------------------------------------------------------
 @measure_and_print_time_decorator
 def function_1():
-    """Ollama manual HTTP requests with streaming"""
-    ollama_manual = OllamaManual(model="gemma3:270m")
-
-    num = randint(1, 10)
-    messages = [
-        {
-            "role": "user",
-            "content": f"What is 1 + {num}? Please explain step by step.",
-        }
-    ]
-
-    response = ollama_manual.send_request(messages)
-    if response:
-        print(f"\nFull response received: {len(response)} characters")
-
-
-@measure_and_print_time_decorator
-def function_2():
-    """Ollama using official client - Basic generation"""
-    ollama_client = OllamaAutomatic(model="gemma3:270m")
-
-    num = randint(1, 10)
-    prompt = f"What is 1 + {num}? Please explain step by step."
-
-    response = ollama_client.generate_response(prompt)
-    if response:
-        print("\nResponse from Ollama (official client):")
-        print(response)
-        print(f"\nFull response length: {len(response)} characters")
-
-
-@measure_and_print_time_decorator
-def function_3():
-    """Ollama using official client - Streaming generation"""
-    ollama_client = OllamaAutomatic(model="gemma3:270m")
-
-    num = randint(1, 10)
-    prompt = f"What is 1 + {num}? Please explain step by step."
-
-    print("Streaming response:")
-    full_response = ""
-    for chunk in ollama_client.stream_generate(prompt):
-        if chunk and isinstance(chunk, str):
-            full_response += chunk
-
-    print(f"\nFull streamed response length: {len(full_response)} characters")
-
-
-@measure_and_print_time_decorator
-def function_4():
-    """Ollama using official client - Chat with history"""
-    ollama_client = OllamaAutomatic(model="gemma3:270m")
-
-    messages = [
-        {"role": "user", "content": "What is 2 + 2?"},
-        {"role": "assistant", "content": "2 + 2 equals 4."},
-        {"role": "user", "content": "Now multiply that by 3."}
-    ]
-
-    # Print the entire conversation first
-    print("Full conversation history:")
-    for i, msg in enumerate(messages):
-        print(f"{i + 1}. {msg['role'].upper()}: {msg['content']}")
-
-    print("\n--- Generating next response ---")
-
-    response = ollama_client.chat(messages)
-    if response:
-        # Add the new response to the conversation
-        messages.append({"role": "assistant", "content": response})
-
-        print("\nUpdated conversation:")
-        for i, msg in enumerate(messages):
-            print(f"{i + 1}. {msg['role'].upper()}: {msg['content']}")
-
-# ------------------------------------------------------------------------------
-# OPENAI
-# ------------------------------------------------------------------------------
-@measure_and_print_time_decorator
-def function_5():
-    # external_api_manager = ExternalManual()
-
     info = """
     Elon Reeve Musk FRS (/ˈiːlɒn/ EE-lon; born June 28, 1971) is an international businessman and entrepreneur known for his leadership of Tesla, SpaceX, X (formerly Twitter), and the Department of Government Efficiency (DOGE). Musk has been the wealthiest person in the world since 2021; as of May 2025, Forbes estimates his net worth to be US$424.7 billion.
     Born to a wealthy family in Pretoria, South Africa, Musk emigrated in 1989 to Canada; he had obtained Canadian citizenship at birth through his Canadian-born mother. He received bachelor's degrees in 1997 from the University of Pennsylvania in Philadelphia, United States, before moving to California to pursue business ventures. In 1995, Musk co-founded the software company Zip2. Following its sale in 1999, he co-founded X.com, an online payment company that later merged to form PayPal, which was acquired by eBay in 2002. That year, Musk also became an American citizen.
@@ -129,25 +37,11 @@ def function_5():
         template=summary_template
     )
 
-    llm = ChatOpenAI(
-        temperature=0,          # 0 for deterministic, 1 for creative
-        model="gpt-4.1-mini"    # models: https://platform.openai.com/settings/organization/limits
-    )                           # usage: https://platform.openai.com/settings/organization/usage
-
-    # llm = ChatOllama(
-    #     temperature=0,
-    #     model="gemma3:270m"       # small model
-    # )
-
-    # llm = ChatOllama(
-    #     temperature=0,
-    #     model="gpt-oss:20b"       # large model, dont run until 32GB RAM
-    # )
-
-    # llm = ChatOllama(
-    #     temperature=0,
-    #     model="gemma3:4b"           # medium, slow
-    # )
+    # temperature=0 for deterministic, 1 for creative
+    # llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini")
+    llm = ChatOllama(temperature=0, model="gemma3:270m")        # small model
+    # llm = ChatOllama(temperature=0, model="gpt-oss:20b")        # large model, dont run until 32GB RAM
+    # llm = ChatOllama(temperature=0, model="gemma3:4b")          # medium, slow
 
     chain = summary_prompt_template | llm   # output of one is input to the next
 
@@ -164,10 +58,5 @@ def function_5():
 if __name__ == "__main__":
     menu = CommandMenu({
         '1': function_1,
-        '2': function_2,
-        '3': function_3,
-        '4': function_4,
-
-        '5': function_5,
     })
     menu.run()
