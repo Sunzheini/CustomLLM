@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from langchain.chains.question_answering.map_rerank_prompt import output_parser
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableSequence
 from langchain_core.tools import tool
@@ -11,9 +12,12 @@ from langchain import hub
 from langchain.agents import AgentExecutor
 from langchain.agents.react.agent import create_react_agent
 from langchain_tavily import TavilySearch
-from pywin.framework.toolmenu import tools
+from langchain_core.output_parsers.pydantic import PydanticOutputParser
+from langchain_core.runnables import RunnableLambda
 
 from core.command_menu import CommandMenu
+from models.schemas import AgentResponse
+from prompts.prompt import REACT_PROMPT_WITH_FORMAT_INSTRUCTIONS
 from support.measure_and_print_time_decorator import measure_and_print_time_decorator
 
 
@@ -54,8 +58,18 @@ def function_1():
     )
 
     # 2. predefined react agent prompt template
-    react_prompt_template = hub.pull("hwchase17/react")
+    # react_prompt_template = hub.pull("hwchase17/react")
 
+    # 3. predefined react agent prompt template customized with output instructions
+    output_parser = PydanticOutputParser(
+        pydantic_object=AgentResponse,
+    )
+    react_prompt_template = PromptTemplate(
+        template=REACT_PROMPT_WITH_FORMAT_INSTRUCTIONS,
+        input_variables=["input", "agent_scratchpad", "tool_names"],
+    ).partial(
+        format_instructions=output_parser.get_format_instructions()
+    )
 
     # -------------------------------------------------------------------------------------------------------
     # LLMs
@@ -89,6 +103,7 @@ def function_1():
 
     # 2. React agent chain with llm, tools and react prompt template
     agent = create_react_agent(llm=llm, tools=tools, prompt=react_prompt_template)
+
     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
     chain = agent_executor
 
