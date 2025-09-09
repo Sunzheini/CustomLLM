@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -104,6 +105,18 @@ def function_1():
 
     # print(response.content)
     print(response)
+
+    # -------------------------------------------------------------------------------------------------------
+    # Use the response
+    # -------------------------------------------------------------------------------------------------------
+    # Extract and parse the JSON
+    # json_str = response['output'].strip('```json').strip('```').strip()
+    # data = json.loads(json_str)
+
+    # Access the data
+    # print(data['answer'])
+    # for source in data['sources']:
+    #     print(f"Source URL: {source['url']}")
 
 
     # -------------------------------------------------------------------------------------------------------
