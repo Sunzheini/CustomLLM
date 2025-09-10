@@ -16,3 +16,10 @@ ollama models: https://ollama.com/library
 # OpenAI
 models: https://platform.openai.com/settings/organization/limits
 usage: https://platform.openai.com/settings/organization/usage
+
+# Vector DB
+pip install langchain-pinecone
+Pinecone: https://www.pinecone.io/
+Create Index
+Create a var INDEX_NAME=custom-index
+

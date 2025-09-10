@@ -37,6 +37,8 @@ if os.path.exists(os.path.join(BASE_DIR, '.env')):
 open_ai_api_key = os.getenv('OPENAI_API_KEY')
 langsmith_api_key = os.getenv('LANGSMITH_API_KEY')
 tavily_api_key = os.getenv('TAVILY_API_KEY')
+pinecone_api_key = os.getenv('PINECONE_API_KEY')
+index_name = os.getenv('INDEX_NAME')
 
 
 @measure_and_print_time_decorator
