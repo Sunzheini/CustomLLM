@@ -1,5 +1,10 @@
 Run main.py
 
+# General
+Hugging Face = The models (the "what")
+LangChain = The orchestration (the "how")
+LangSmith = The monitoring (the "why")
+
 # Ollama
 cmd: `ollama`
 user: Sunzheini, email: daniel_zorov@abv.bg, pass: Maimun06

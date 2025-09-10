@@ -6,6 +6,7 @@ from typing import Union
 from dotenv import load_dotenv
 from langchain.agents.output_parsers import ReActSingleInputOutputParser
 from langchain.chains.question_answering.map_rerank_prompt import output_parser
+from langchain_community.document_loaders import TextLoader
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableSequence
@@ -39,10 +40,20 @@ langsmith_api_key = os.getenv('LANGSMITH_API_KEY')
 tavily_api_key = os.getenv('TAVILY_API_KEY')
 pinecone_api_key = os.getenv('PINECONE_API_KEY')
 index_name = os.getenv('INDEX_NAME')
+huggingface_hub = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 
 
 @measure_and_print_time_decorator
 def function_1():
+    # -------------------------------------------------------------------------------------------------------
+    # Ingestion (ingest the exampleblog.txt into a vector db
+    # -------------------------------------------------------------------------------------------------------
+    path_to_file = os.path.join(BASE_DIR, 'context', 'exampleblog.txt')
+    loader = TextLoader(path_to_file)
+    documents = loader.load()
+
+
+
     # -------------------------------------------------------------------------------------------------------
     # Tools
     # -------------------------------------------------------------------------------------------------------
