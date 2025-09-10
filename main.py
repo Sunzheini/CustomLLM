@@ -1,9 +1,12 @@
 import os
 import json
 from pathlib import Path
+from typing import Union
 
 from dotenv import load_dotenv
+from langchain.agents.output_parsers import ReActSingleInputOutputParser
 from langchain.chains.question_answering.map_rerank_prompt import output_parser
+from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableSequence
 from langchain.agents import tool
@@ -94,13 +97,9 @@ def function_1():
     # llm = ChatOllama(temperature=0, model="gemma3:4b")          # medium, slow
 
     # 3
-    # llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini", stop=["\nObservation:", "Observation"])
-    # stop sequence to end generation when the model outputs anything from the list
-
     llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini").bind(
-        stop=["\nObservation:", "Observation"]
+        stop=["\nObservation:", "Observation"]  # # Safety net, not always triggered, stop sequence to end generation when the model outputs anything from the list
     )
-    # # stop sequence to end generation when the model outputs anything from the list
 
 
     # --------------------------------------------------------------------------------------------------------
@@ -116,10 +115,12 @@ def function_1():
     # # chain = agent_executor
     # chain = agent_executor | extract_output | parse_output   # chain the agent executor with output extraction and parsing
 
-    # 3
+    # 3a
     # chain = template3 | llm     # `|`: output of one is input to the next (Part of the LangCHain Expression Language)
     agent = create_react_agent(llm=llm, tools=tools, prompt=template3)
-    chain = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    chain = agent_executor
+
 
     # -------------------------------------------------------------------------------------------------------
     # Request and response
@@ -141,6 +142,8 @@ def function_1():
         }
     )
     print(response)
+    print(response['output'])
+
 
     # -------------------------------------------------------------------------------------------------------
     # Use the response
