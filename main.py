@@ -25,6 +25,7 @@ from models.schemas import AgentResponse
 from prompts.prompt1 import CUSTOM_USER_PROMPT
 from prompts.prompt2 import REACT_PROMPT_WITH_FORMAT_INSTRUCTIONS
 from prompts.prompt3 import PROMPT3
+from support.callback_handler import CustomCallbackHandler
 from support.measure_and_print_time_decorator import measure_and_print_time_decorator
 
 
@@ -97,7 +98,7 @@ def function_1():
     # llm = ChatOllama(temperature=0, model="gemma3:4b")          # medium, slow
 
     # 3
-    llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini").bind(
+    llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini", callbacks=[CustomCallbackHandler()]).bind(
         stop=["\nObservation:", "Observation"]  # # Safety net, not always triggered, stop sequence to end generation when the model outputs anything from the list
     )
 
@@ -118,7 +119,7 @@ def function_1():
     # 3a
     # chain = template3 | llm     # `|`: output of one is input to the next (Part of the LangCHain Expression Language)
     agent = create_react_agent(llm=llm, tools=tools, prompt=template3)
-    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, return_intermediate_steps=True)  # also return intermediate steps for inspection
     chain = agent_executor
 
 
