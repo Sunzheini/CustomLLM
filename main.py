@@ -13,14 +13,15 @@ from langchain_core.runnables import RunnableSequence
 from langchain.agents import tool
 from langchain_core.tools import render_text_description
 from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain import hub
 from langchain.agents import AgentExecutor
 from langchain.agents.react.agent import create_react_agent
+from langchain_pinecone import PineconeVectorStore
 from langchain_tavily import TavilySearch
 from langchain_core.output_parsers.pydantic import PydanticOutputParser
 from langchain_core.runnables import RunnableLambda
-
+from langchain_text_splitters import CharacterTextSplitter
 from core.command_menu import CommandMenu
 from models.schemas import AgentResponse
 from prompts.prompt1 import CUSTOM_USER_PROMPT
@@ -48,11 +49,18 @@ def function_1():
     # -------------------------------------------------------------------------------------------------------
     # Ingestion (ingest the exampleblog.txt into a vector db
     # -------------------------------------------------------------------------------------------------------
-    path_to_file = os.path.join(BASE_DIR, 'context', 'exampleblog.txt')
+    path_to_file = './context/exampleblog.txt'
     loader = TextLoader(path_to_file)
     documents = loader.load()
 
+    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)   # chunk size 1000 tokens, no overlap
+    texts = text_splitter.split_documents(documents)
+    print(f"Document has been split into {len(texts)} chunks.")
 
+    embeddings = OpenAIEmbeddings(openai_api_key=open_ai_api_key)
+    PineconeVectorStore.from_documents(texts, embeddings, index_name=index_name, pinecone_api_key=pinecone_api_key)
+
+    print('bp hit')
 
     # -------------------------------------------------------------------------------------------------------
     # Tools

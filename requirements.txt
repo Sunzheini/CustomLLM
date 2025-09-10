@@ -108,7 +108,7 @@ packaging==24.2
 pandas==2.3.2
 pillow==11.3.0
 pinecone==7.3.0
-pinecone-client==6.0.0
+pinecone-client==3.2.2
 pinecone-plugin-assistant==1.8.0
 pinecone-plugin-interface==0.0.7
 posthog==5.4.0
