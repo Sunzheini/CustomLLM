@@ -22,7 +22,11 @@ from langchain_tavily import TavilySearch
 from langchain_core.output_parsers.pydantic import PydanticOutputParser
 from langchain_core.runnables import RunnableLambda
 from langchain_text_splitters import CharacterTextSplitter
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains.retrieval import create_retrieval_chain
+
 from core.command_menu import CommandMenu
+
 from models.schemas import AgentResponse
 from prompts.prompt1 import CUSTOM_USER_PROMPT
 from prompts.prompt2 import REACT_PROMPT_WITH_FORMAT_INSTRUCTIONS
@@ -45,23 +49,43 @@ huggingface_hub = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 
 
 @measure_and_print_time_decorator
+def function_2():
+    # -------------------------------------------------------------------------------------------------------
+    # RAG Ingestion (ingest the exampleblog.txt into a vector db
+    # -------------------------------------------------------------------------------------------------------
+    # path_to_file = './context/exampleblog.txt'
+    # loader = TextLoader(path_to_file)
+    # documents = loader.load()
+    #
+    # text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)   # chunk size 1000 tokens, no overlap
+    # texts = text_splitter.split_documents(documents)
+    # print(f"Document has been split into {len(texts)} chunks.")
+    #
+    # # embeddings = OpenAIEmbeddings(openai_api_key=open_ai_api_key)
+    # embeddings = OpenAIEmbeddings()
+    # PineconeVectorStore.from_documents(texts, embeddings, index_name=index_name, pinecone_api_key=pinecone_api_key)
+
+
+    # -------------------------------------------------------------------------------------------------------
+    # RAG Retrieval (retrieve relevant chunks from the vector db)
+    # -------------------------------------------------------------------------------------------------------
+    embeddings = OpenAIEmbeddings()
+    llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini")
+
+    # query = "What are vector databases often used for?"
+    query = "Has Evan Chaki published any articles on vector databases?"
+
+    vectorstore = PineconeVectorStore(index_name=index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key)
+    # https://smith.langchain.com/hub/langchain-ai/retrieval-qa-chat?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650
+    retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
+    combine_docs_chain = create_stuff_documents_chain(llm=llm, prompt=retrieval_qa_chat_prompt)
+    retrieval_chain = create_retrieval_chain(retriever=vectorstore.as_retriever(), combine_docs_chain=combine_docs_chain)
+    response = retrieval_chain.invoke(input={"input": query})
+    print(response)
+
+
+@measure_and_print_time_decorator
 def function_1():
-    # -------------------------------------------------------------------------------------------------------
-    # Ingestion (ingest the exampleblog.txt into a vector db
-    # -------------------------------------------------------------------------------------------------------
-    path_to_file = './context/exampleblog.txt'
-    loader = TextLoader(path_to_file)
-    documents = loader.load()
-
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)   # chunk size 1000 tokens, no overlap
-    texts = text_splitter.split_documents(documents)
-    print(f"Document has been split into {len(texts)} chunks.")
-
-    embeddings = OpenAIEmbeddings(openai_api_key=open_ai_api_key)
-    PineconeVectorStore.from_documents(texts, embeddings, index_name=index_name, pinecone_api_key=pinecone_api_key)
-
-    print('bp hit')
-
     # -------------------------------------------------------------------------------------------------------
     # Tools
     # -------------------------------------------------------------------------------------------------------
@@ -187,5 +211,6 @@ if __name__ == "__main__":
     # menu = CommandMenu({
     #     '1': function_1,
     # })
-    function_1()
+    # function_1()
+    function_2()
     # menu.run()
