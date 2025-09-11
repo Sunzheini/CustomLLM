@@ -6,14 +6,15 @@ from typing import Union
 from dotenv import load_dotenv
 from langchain.agents.output_parsers import ReActSingleInputOutputParser
 from langchain.chains.question_answering.map_rerank_prompt import output_parser
-from langchain_community.document_loaders import TextLoader
+from langchain_community.document_loaders import TextLoader, PyPDFLoader
+from langchain_community.vectorstores import FAISS
 from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableSequence
 from langchain.agents import tool
 from langchain_core.tools import render_text_description
 from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings, OpenAI
 from langchain import hub
 from langchain.agents import AgentExecutor
 from langchain.agents.react.agent import create_react_agent
@@ -49,6 +50,43 @@ huggingface_hub = os.getenv('HUGGINGFACEHUB_API_TOKEN')
 
 
 @measure_and_print_time_decorator
+def function_3():
+    # -------------------------------------------------------------------------------------------------------
+    # Chat with pdf: Ingestion to FAISS vector store
+    # -------------------------------------------------------------------------------------------------------
+    # path_to_file = './context/react_paper.pdf'
+    # loader = PyPDFLoader(path_to_file)
+    # documents = loader.load()
+    #
+    # text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=30, separator="\n")
+    # texts = text_splitter.split_documents(documents)
+    # print(f"Document has been split into {len(texts)} chunks.")
+    #
+    # embeddings = OpenAIEmbeddings()
+    # vectorstore = FAISS.from_documents(texts, embeddings)     # FAISS is local, Pinecone is cloud
+    #
+    # # if you want to save to disc, otherwise it is in memory only
+    # vectorstore.save_local('faiss_index_react_paper')
+
+    # -------------------------------------------------------------------------------------------------------
+    # Chat with pdf: Ingestion to FAISS vector store
+    # -------------------------------------------------------------------------------------------------------
+    embeddings = OpenAIEmbeddings()
+    llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini")
+
+    query = "Give me the gist of ReAct in 3 sentences."
+    # query = "When was the ReAct paper published?"
+
+    vectorstore = FAISS.load_local('faiss_index_react_paper', embeddings, allow_dangerous_deserialization=True)
+    # https://smith.langchain.com/hub/langchain-ai/retrieval-qa-chat?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650
+    retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
+    combine_docs_chain = create_stuff_documents_chain(llm=llm, prompt=retrieval_qa_chat_prompt)
+    retrieval_chain = create_retrieval_chain(retriever=vectorstore.as_retriever(), combine_docs_chain=combine_docs_chain)
+    response = retrieval_chain.invoke(input={"input": query})
+    print(response['answer'])
+
+
+@measure_and_print_time_decorator
 def function_2():
     # -------------------------------------------------------------------------------------------------------
     # RAG Ingestion (ingest the exampleblog.txt into a vector db
@@ -64,7 +102,6 @@ def function_2():
     # # embeddings = OpenAIEmbeddings(openai_api_key=open_ai_api_key)
     # embeddings = OpenAIEmbeddings()
     # PineconeVectorStore.from_documents(texts, embeddings, index_name=index_name, pinecone_api_key=pinecone_api_key)
-
 
     # -------------------------------------------------------------------------------------------------------
     # RAG Retrieval (retrieve relevant chunks from the vector db)
@@ -212,5 +249,6 @@ if __name__ == "__main__":
     #     '1': function_1,
     # })
     # function_1()
-    function_2()
+    # function_2()
+    function_3()
     # menu.run()
