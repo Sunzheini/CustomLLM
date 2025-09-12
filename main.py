@@ -88,12 +88,12 @@ def function_3():
     # -------------------------------------------------------------------------------------------------------
     # Chat with pdf: Get info
     # -------------------------------------------------------------------------------------------------------
-
     # 0
     embeddings = embeddings_manager.open_ai_embeddings
 
     # 2
-    vectorstore = vector_store_manager.get_vector_store('faiss', 'faiss_index_react_paper', embeddings, allow_dangerous_deserialization=True)
+    faiss_path = str(BASE_DIR / 'faiss_index_react_paper')
+    vectorstore = vector_store_manager.get_vector_store('faiss', faiss_path, embeddings, allow_dangerous_deserialization=True)
 
     # 3
     query = "Give me the gist of ReAct in 3 sentences."
