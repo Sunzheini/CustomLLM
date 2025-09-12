@@ -22,7 +22,7 @@ def test_retrieve_from_pdf(base_dir, managers):
 
     # 2
     faiss_path = str(base_dir / 'faiss_index_react_paper')
-    vectorstore = managers['vector_store_manager'].get_vector_store('faiss', faiss_path, embeddings, allow_dangerous_deserialization=True)
+    vectorstore = managers['vector_store_manager'].get_vector_store('faiss', 'load', faiss_path, embeddings, allow_dangerous_deserialization=True)
 
     # 3
     query = "Give me the gist of ReAct in 3 sentences."

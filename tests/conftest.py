@@ -11,12 +11,12 @@ from tools.tools_manager import ToolsManager
 from vector_stores.vector_store_manager import VectorStoreManager
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def base_dir():
     return Path(__file__).resolve().parent.parent
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def managers():
     return {
         'embeddings_manager': EmbeddingsManager(),              # 0
@@ -27,6 +27,10 @@ def managers():
         'chains_manager': ChainsManager(),                      # 5
         'communications_manager': CommunicationsManager(),      # 6
     }
+
+
+
+
 
 
 # run with `pytest` in th terminal

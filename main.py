@@ -65,52 +65,6 @@ chains_manager = ChainsManager()                    # 5
 communications_manager = CommunicationsManager()    # 6
 
 
-
-@measure_and_print_time_decorator
-def function_3():
-    # -------------------------------------------------------------------------------------------------------
-    # Chat with pdf: Ingestion to FAISS vector store
-    # -------------------------------------------------------------------------------------------------------
-    # path_to_file = './context/react_paper.pdf'
-    # loader = PyPDFLoader(path_to_file)
-    # documents = loader.load()
-    #
-    # text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=30, separator="\n")
-    # texts = text_splitter.split_documents(documents)
-    # print(f"Document has been split into {len(texts)} chunks.")
-    #
-    # embeddings = OpenAIEmbeddings()
-    # vectorstore = FAISS.from_documents(texts, embeddings)     # FAISS is local, Pinecone is cloud
-    #
-    # # if you want to save to disc, otherwise it is in memory only
-    # vectorstore.save_local('faiss_index_react_paper')
-
-    # -------------------------------------------------------------------------------------------------------
-    # Chat with pdf: Get info
-    # -------------------------------------------------------------------------------------------------------
-    # 0
-    embeddings = embeddings_manager.open_ai_embeddings
-
-    # 2
-    faiss_path = str(BASE_DIR / 'faiss_index_react_paper')
-    vectorstore = vector_store_manager.get_vector_store('faiss', faiss_path, embeddings, allow_dangerous_deserialization=True)
-
-    # 3
-    query = "Give me the gist of ReAct in 3 sentences."
-    # query = "When was the ReAct paper published?"
-    retrieval_qa_chat_prompt = prompt_manager.get_prompt("langchain-ai/retrieval-qa-chat")
-
-    # 4
-    llm = llm_manager.get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
-
-    # 5
-    chain = chains_manager.get_pdf_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
-
-    # 6
-    response = chain.invoke(input={"input": query})
-    print(response['answer'])
-
-
 @measure_and_print_time_decorator
 def function_2():
     # -------------------------------------------------------------------------------------------------------
@@ -268,6 +222,5 @@ if __name__ == "__main__":
     #     '1': function_1,
     # })
     # function_1()
-    # function_2()
-    function_3()
+    function_2()
     # menu.run()
