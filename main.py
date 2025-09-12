@@ -26,15 +26,20 @@ from langchain_text_splitters import CharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 
+from context.chains.chains_manager import ChainsManager
 from core.command_menu import CommandMenu
+from embeddings.embeddings_manager import EmbeddingsManager
+from llm_manager import LlmManager
 
 from models.schemas import AgentResponse
 from prompts.prompt1 import CUSTOM_USER_PROMPT
 from prompts.prompt2 import REACT_PROMPT_WITH_FORMAT_INSTRUCTIONS
 from prompts.prompt3 import PROMPT3
+from prompts.prompt_manager import PromptManager
 from support.callback_handler import CustomCallbackHandler
 from support.measure_and_print_time_decorator import measure_and_print_time_decorator
-
+from tools.tools_manager import ToolsManager
+from vector_stores.vector_store_manager import VectorStoreManager
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -47,6 +52,17 @@ tavily_api_key = os.getenv('TAVILY_API_KEY')
 pinecone_api_key = os.getenv('PINECONE_API_KEY')
 index_name = os.getenv('INDEX_NAME')
 huggingface_hub = os.getenv('HUGGINGFACEHUB_API_TOKEN')
+
+
+embeddings_manager = EmbeddingsManager()            # 0
+tools_manager = ToolsManager()                      # 1
+vector_store_manager = VectorStoreManager()         # 2
+
+prompt_manager = PromptManager()                    # 3
+llm_manager = LlmManager()                          # 4
+chains_manager = ChainsManager()                    # 5
+communications_manager = CommunicationsManager()    # 6
+
 
 
 @measure_and_print_time_decorator
@@ -71,17 +87,27 @@ def function_3():
     # -------------------------------------------------------------------------------------------------------
     # Chat with pdf: Ingestion to FAISS vector store
     # -------------------------------------------------------------------------------------------------------
-    embeddings = OpenAIEmbeddings()
-    llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini")
-
-    query = "Give me the gist of ReAct in 3 sentences."
     # query = "When was the ReAct paper published?"
 
-    vectorstore = FAISS.load_local('faiss_index_react_paper', embeddings, allow_dangerous_deserialization=True)
-    # https://smith.langchain.com/hub/langchain-ai/retrieval-qa-chat?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650
-    retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
+    # 0
+    embeddings = embeddings_manager.open_ai_embeddings
+
+    # 2
+    vectorstore = vector_store_manager.get_vector_store('faiss', 'faiss_index_react_paper', embeddings, allow_dangerous_deserialization=True)
+
+    # 3
+    query = "Give me the gist of ReAct in 3 sentences."
+    # query = "When was the ReAct paper published?"
+    retrieval_qa_chat_prompt = prompt_manager.get_prompt("langchain-ai/retrieval-qa-chat")
+
+    # 4
+    llm = llm_manager.get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
+
+    # 5
     combine_docs_chain = create_stuff_documents_chain(llm=llm, prompt=retrieval_qa_chat_prompt)
     retrieval_chain = create_retrieval_chain(retriever=vectorstore.as_retriever(), combine_docs_chain=combine_docs_chain)
+
+    # 6
     response = retrieval_chain.invoke(input={"input": query})
     print(response['answer'])
 
@@ -99,9 +125,9 @@ def function_2():
     # texts = text_splitter.split_documents(documents)
     # print(f"Document has been split into {len(texts)} chunks.")
     #
-    # # embeddings = OpenAIEmbeddings(openai_api_key=open_ai_api_key)
+    # # embeddings = OpenAIEmbeddings(openai_api_key=key_manager.get_required_key('OPENAI_API_KEY'))
     # embeddings = OpenAIEmbeddings()
-    # PineconeVectorStore.from_documents(texts, embeddings, index_name=index_name, pinecone_api_key=pinecone_api_key)
+    # PineconeVectorStore.from_documents(texts, embeddings, index_name=index_name, pinecone_api_key=key_manager.get_required_key('PINECONE_API_KEY'))
 
     # -------------------------------------------------------------------------------------------------------
     # RAG Retrieval (retrieve relevant chunks from the vector db)
@@ -112,9 +138,14 @@ def function_2():
     # query = "What are vector databases often used for?"
     query = "Has Evan Chaki published any articles on vector databases?"
 
-    vectorstore = PineconeVectorStore(index_name=index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key)
+    # 0
     # https://smith.langchain.com/hub/langchain-ai/retrieval-qa-chat?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650
+    vectorstore = PineconeVectorStore(index_name=index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key)
+
+    # 1
     retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
+
+
     combine_docs_chain = create_stuff_documents_chain(llm=llm, prompt=retrieval_qa_chat_prompt)
     retrieval_chain = create_retrieval_chain(retriever=vectorstore.as_retriever(), combine_docs_chain=combine_docs_chain)
     response = retrieval_chain.invoke(input={"input": query})
@@ -127,21 +158,10 @@ def function_1():
     # Tools
     # -------------------------------------------------------------------------------------------------------
     # tools allow llms to access external utilities
-    # tools = [TavilySearch(api_key=tavily_api_key),]
+    # tools = [TavilySearch(api_key=tavily_api_key), ]
 
 
-    # 3. you can define your own tools
-    @tool
-    def get_text_length(text: str) -> int:
-        """Returns the length of the input text."""     # llm uses this description to decide when to use this tool
-        print(f"get_text_length enter with {text=}")
-        text = text.strip("'\n").strip(
-            '"'
-        )   # clean up the input text from extra quotes and newlines
-        return len(text)
-
-
-    tools = [get_text_length, ]
+    tools = [tools_manager.get_text_length, ]
 
 
     # -------------------------------------------------------------------------------------------------------
