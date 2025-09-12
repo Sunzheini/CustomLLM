@@ -26,6 +26,7 @@ from langchain_text_splitters import CharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 
+from communication.communications_manager import CommunicationsManager
 from context.chains.chains_manager import ChainsManager
 from core.command_menu import CommandMenu
 from embeddings.embeddings_manager import EmbeddingsManager
@@ -85,9 +86,8 @@ def function_3():
     # vectorstore.save_local('faiss_index_react_paper')
 
     # -------------------------------------------------------------------------------------------------------
-    # Chat with pdf: Ingestion to FAISS vector store
+    # Chat with pdf: Get info
     # -------------------------------------------------------------------------------------------------------
-    # query = "When was the ReAct paper published?"
 
     # 0
     embeddings = embeddings_manager.open_ai_embeddings
@@ -104,11 +104,10 @@ def function_3():
     llm = llm_manager.get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
 
     # 5
-    combine_docs_chain = create_stuff_documents_chain(llm=llm, prompt=retrieval_qa_chat_prompt)
-    retrieval_chain = create_retrieval_chain(retriever=vectorstore.as_retriever(), combine_docs_chain=combine_docs_chain)
+    chain = chains_manager.get_pdf_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
 
     # 6
-    response = retrieval_chain.invoke(input={"input": query})
+    response = chain.invoke(input={"input": query})
     print(response['answer'])
 
 

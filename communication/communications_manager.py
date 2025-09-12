@@ -1,0 +1,2 @@
+class CommunicationsManager:
+    pass
