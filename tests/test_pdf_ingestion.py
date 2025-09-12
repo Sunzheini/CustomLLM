@@ -29,7 +29,7 @@ def split_pdf_texts():
     return texts
 
 
-def test_split_pdf_into_chunks(split_pdf_texts):
+def test_01_split_pdf_into_chunks(split_pdf_texts):
     """
     Test splitting a PDF document into text chunks.
     Verifies that the document is loaded and split correctly.
@@ -51,7 +51,7 @@ def test_split_pdf_into_chunks(split_pdf_texts):
     print(f"Sample chunk: {texts[0].page_content[:100]}...")
 
 
-def test_ingest_pdf_to_vector_store(base_dir, managers, split_pdf_texts):
+def test_02_ingest_pdf_to_vector_store(base_dir, managers, split_pdf_texts):
     """
     Test ingesting PDF content into a vector store and querying it.
     This is an integration test that requires OpenAI API access.

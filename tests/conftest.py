@@ -29,9 +29,5 @@ def managers():
     }
 
 
-
-
-
-
-# run with `pytest` in th terminal
-# run with `pytest -s` to see print statements
+# run with `pytest -v` in th terminal
+# run with `pytest -v -s` to see print statements
