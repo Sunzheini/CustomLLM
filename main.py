@@ -17,7 +17,6 @@ from communication.communications_manager import CommunicationsManager
 from embeddings.embeddings_manager import EmbeddingsManager
 from llm_manager import LlmManager
 
-from prompts.prompt3 import PROMPT3
 from prompts.prompt_manager import PromptManager
 from support.callback_handler import CustomCallbackHandler
 from support.measure_and_print_time_decorator import measure_and_print_time_decorator
@@ -141,7 +140,6 @@ def function_1():
     )
     print(response)
     print(response['output'])
-
 
     # -------------------------------------------------------------------------------------------------------
     # Use the response

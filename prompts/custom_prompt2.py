@@ -1,4 +1,4 @@
-PROMPT3 = """
+REACT_PROMPT_WITH_FORMAT_INSTRUCTIONS = """
 Answer the following questions as best you can. You have access to the following tools:
 
 {tools}
@@ -12,10 +12,12 @@ Action Input: the input to the action
 Observation: the result of the action
 ... (this Thought/Action/Action Input/Observation can repeat N times)
 Thought: I now know the final answer
-Final Answer: the final answer to the original input question
+Final Answer: the final answer to the original input question formatted as JSON according to these format instructions: {format_instructions}
+
+IMPORTANT: You MUST follow the Thought/Action/Action Input/Observation pattern until you have enough information to provide the final answer. Only at the very end should you output the JSON.
 
 Begin!
 
-Question: {question}
+Question: {input}
 Thought:{agent_scratchpad}
 """

@@ -1,24 +1,8 @@
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from langchain_core.tools import render_text_description
 from support.callback_handler import CustomCallbackHandler
 
-BASE_DIR = Path(__file__).resolve().parent
 
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
-
-open_ai_api_key = os.getenv('OPENAI_API_KEY')
-langsmith_api_key = os.getenv('LANGSMITH_API_KEY')
-tavily_api_key = os.getenv('TAVILY_API_KEY')
-pinecone_api_key = os.getenv('PINECONE_API_KEY')
-index_name = os.getenv('INDEX_NAME')
-huggingface_hub = os.getenv('HUGGINGFACEHUB_API_TOKEN')
-
-
-def test_07_execute_llm_query(base_dir, managers):
+def test_07_execute_openai_query_custom_tool(base_dir, managers):
     """
     Test executing a simple LLM query using a REACT agent with a text length tool.
     This test demonstrates the integration of various components including prompt

@@ -58,7 +58,11 @@ class ChainsManager:
             agent=agent,
             tools=tools,
             verbose=True,
-            return_intermediate_steps=True  # return intermediate steps for inspection
+
+            return_intermediate_steps=True,  # return intermediate steps for inspection
+
+            handle_parsing_errors=True,
+            max_iterations=5  # Add iteration limit for safety
         )
 
         react_agent_chain = agent_executor

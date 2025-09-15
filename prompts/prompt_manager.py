@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import List
 
 from dotenv import load_dotenv
 from langchain import hub
@@ -26,7 +27,16 @@ class PromptManager:
             "hwchase17/react": {
                 "type": "hub",
                 "link": "https://smith.langchain.com/hub/hwchase17/react?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
-            }
+            },
+
+            "custom_prompt1": {
+                "type": "local",
+                "path": os.path.join(BASE_DIR, 'custom_prompt1.py')
+            },
+            "custom_prompt2": {
+                "type": "local",
+                "path": os.path.join(BASE_DIR, 'custom_prompt2.py')
+            },
         }
 
     def get_prompt_template(self, prompt_name: str) -> BasePromptTemplate:
@@ -43,8 +53,21 @@ class PromptManager:
         if prompt["type"] == "hub":
             return hub.pull(prompt_name)
 
-        elif prompt["type"] == "template":
-            return None
+        elif prompt["type"] == "local":
+            try:
+                with open(prompt["path"], 'r', encoding='utf-8') as f:
+                    template_content = f.read().strip()
+                return PromptTemplate(
+                    template=template_content,
+                    input_variables=self._detect_input_variables(template_content)
+                )
+
+            except FileNotFoundError:
+                raise ValueError(f"Prompt file not found: {prompt['path']}")
+
+            except Exception as e:
+                raise ValueError(f"Error loading prompt from file: {e}")
+
         else:
             raise ValueError(f"Unknown prompt type '{prompt['type']}' for prompt '{prompt_name}'.")
 
@@ -64,3 +87,11 @@ class PromptManager:
         """
         # Use the partial method directly on the PromptTemplate object
         return template.partial(**kwargs)
+
+    @staticmethod
+    def _detect_input_variables(template: str) -> List[str]:
+        """Simple method to detect input variables in template string"""
+        import re
+        # This is a simple regex to find {variable} patterns
+        variables = re.findall(r'\{(\w+)\}', template)
+        return list(set(variables))  # Remove duplicates

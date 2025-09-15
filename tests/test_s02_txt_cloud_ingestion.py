@@ -50,8 +50,8 @@ def test_05_ingest_txt_into_cloud_vector_store(base_dir, managers):
     path_to_file = './context/exampleblog.txt'
     texts = split_pdf('.txt', path_to_file)
 
-    # reduce texts to 2 for faster testing
-    texts = texts[:2]
+    # reduce texts to 3 for faster testing
+    texts = texts[:3]
 
     # ----------------------------------------------------------------------------------
     # Act
@@ -81,7 +81,7 @@ def test_05_ingest_txt_into_cloud_vector_store(base_dir, managers):
     # Test that documents were actually ingested by doing a simple search
     try:
         # Search for something that should exist in your text
-        results = vectorstore.similarity_search("Wikipedia", k=1)
+        results = vectorstore.similarity_search("Wiki", k=1)
         assert len(results) > 0, "Should find at least one similar document"
         assert hasattr(results[0], 'page_content'), "Results should have content"
         assert len(results[0].page_content) > 0, "Result content should not be empty"
