@@ -1,40 +1,22 @@
 import os
-import json
 from pathlib import Path
-from typing import Union
 
 from dotenv import load_dotenv
-from langchain.agents.output_parsers import ReActSingleInputOutputParser
-from langchain.chains.question_answering.map_rerank_prompt import output_parser
-from langchain_community.document_loaders import TextLoader, PyPDFLoader
-from langchain_community.vectorstores import FAISS
-from langchain_core.agents import AgentAction, AgentFinish
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnableSequence
-from langchain.agents import tool
 from langchain_core.tools import render_text_description
-from langchain_ollama import ChatOllama
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings, OpenAI
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain import hub
 from langchain.agents import AgentExecutor
 from langchain.agents.react.agent import create_react_agent
 from langchain_pinecone import PineconeVectorStore
-from langchain_tavily import TavilySearch
-from langchain_core.output_parsers.pydantic import PydanticOutputParser
-from langchain_core.runnables import RunnableLambda
-from langchain_text_splitters import CharacterTextSplitter
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 
+from chains.chains_manager import ChainsManager
 from communication.communications_manager import CommunicationsManager
-from context.chains.chains_manager import ChainsManager
-from core.command_menu import CommandMenu
 from embeddings.embeddings_manager import EmbeddingsManager
 from llm_manager import LlmManager
 
-from models.schemas import AgentResponse
-from prompts.prompt1 import CUSTOM_USER_PROMPT
-from prompts.prompt2 import REACT_PROMPT_WITH_FORMAT_INSTRUCTIONS
 from prompts.prompt3 import PROMPT3
 from prompts.prompt_manager import PromptManager
 from support.callback_handler import CustomCallbackHandler

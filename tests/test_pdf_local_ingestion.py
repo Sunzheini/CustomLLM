@@ -1,35 +1,10 @@
 import shutil
-from pathlib import Path
-
 import pytest
-from langchain_text_splitters import CharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
+
+from tests.conftest import split_pdf
 
 
-@pytest.fixture(scope="session")
-def split_pdf_texts():
-    """
-    Fixture that loads and splits the PDF once for multiple tests.
-    Returns the split texts or None if PDF not found.
-    """
-    path_to_file = './context/react_paper.pdf'
-
-    # Check if file exists first
-    if not Path(path_to_file).exists():
-        pytest.skip("PDF file not found - cannot test splitting")
-        return None
-
-    loader = PyPDFLoader(path_to_file)
-    documents = loader.load()
-
-    text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=30, separator="\n")
-    texts = text_splitter.split_documents(documents)
-
-    print(f"Document has been split into {len(texts)} chunks.")
-    return texts
-
-
-def test_01_split_pdf_into_chunks(split_pdf_texts):
+def test_01_split_pdf_into_chunks():
     """
     Test splitting a PDF document into text chunks.
     Verifies that the document is loaded and split correctly.
@@ -37,7 +12,8 @@ def test_01_split_pdf_into_chunks(split_pdf_texts):
     # ----------------------------------------------------------------------------------
     # Act
     # ----------------------------------------------------------------------------------
-    texts = split_pdf_texts
+    path_to_file = './context/react_paper.pdf'
+    texts = split_pdf('.pdf', path_to_file)
 
     # ----------------------------------------------------------------------------------
     # Assert
@@ -51,7 +27,7 @@ def test_01_split_pdf_into_chunks(split_pdf_texts):
     print(f"Sample chunk: {texts[0].page_content[:100]}...")
 
 
-def test_02_ingest_pdf_to_vector_store(base_dir, managers, split_pdf_texts):
+def test_02_ingest_pdf_into_local_vector_store(base_dir, managers):
     """
     Test ingesting PDF content into a vector store and querying it.
     This is an integration test that requires OpenAI API access.
@@ -59,7 +35,8 @@ def test_02_ingest_pdf_to_vector_store(base_dir, managers, split_pdf_texts):
     # ----------------------------------------------------------------------------------
     # Arrange
     # ----------------------------------------------------------------------------------
-    texts = split_pdf_texts
+    path_to_file = './context/react_paper.pdf'
+    texts = split_pdf('.pdf', path_to_file)
 
     # ----------------------------------------------------------------------------------
     # Act
@@ -69,7 +46,8 @@ def test_02_ingest_pdf_to_vector_store(base_dir, managers, split_pdf_texts):
 
     # 2
     faiss_path = str(base_dir / 'faiss_index_react_paper')
-    vectorstore = managers['vector_store_manager'].get_vector_store('faiss', 'create', texts, embeddings)
+    vectorstore = (managers['vector_store_manager']
+                   .get_vector_store('faiss', 'create', texts, embeddings))
 
     vectorstore.save_local('faiss_index_react_paper')    # if you want to save to disc, otherwise it is in memory only
     print(f"Vector store saved to: {faiss_path}")
@@ -82,7 +60,7 @@ def test_02_ingest_pdf_to_vector_store(base_dir, managers, split_pdf_texts):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def cleanup_vector_store_after_tests(base_dir):
+def cleanup_local_vector_store_after_tests(base_dir):
     """
     Auto-run fixture that cleans up after all tests are done.
     """
