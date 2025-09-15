@@ -18,6 +18,7 @@ class VectorStoreManager:
             'pinecone': {
                 'create': PineconeVectorStore.from_documents,
                 # Pinecone doesn't have a load_local equivalent
+                'load': PineconeVectorStore,
             }
         }
 
@@ -38,6 +39,6 @@ class VectorStoreManager:
             raise ValueError(f"Unsupported vector store type: {store_name}")
 
         config = self.vector_store_configs[store_name]
-        method = config.get(store_type)
+        callable_object = config.get(store_type)
 
-        return method(*args, **kwargs)
+        return callable_object(*args, **kwargs)

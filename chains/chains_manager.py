@@ -13,11 +13,7 @@ class ChainsManager:
         pass
 
     @staticmethod
-    def get_pdf_retrieval_chain(
-            llm: BaseChatModel,
-            prompt: BasePromptTemplate,
-            vectorstore: VectorStore
-    ) -> Chain:
+    def get_pdf_retrieval_chain(llm: BaseChatModel, prompt: BasePromptTemplate, vectorstore: VectorStore) -> Chain:
         """
         Create a retrieval chain using the provided vectorstore and LLM.
 

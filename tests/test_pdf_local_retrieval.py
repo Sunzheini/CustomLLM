@@ -1,7 +1,7 @@
 from support.callback_handler import CustomCallbackHandler
 
 
-def test_03_retrieve_from_pdf(base_dir, managers):
+def test_03_retrieve_from_pdf_in_local(base_dir, managers):
     """
     Test the complete RAG pipeline for PDF retrieval.
 
