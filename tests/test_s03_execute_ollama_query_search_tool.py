@@ -33,7 +33,8 @@ def test_08_execute_ollama_query_search_tool(base_dir, managers):
     )
 
     # 4
-    llm = managers['llm_manager'].get_llm("gemma3:4b", temperature=0, callbacks=[CustomCallbackHandler()], bind_stop=True)
+    # llm = managers['llm_manager'].get_llm("gemma3:4b", temperature=0, callbacks=[CustomCallbackHandler()], bind_stop=True)
+    llm = managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()], bind_stop=True)
 
     # 5
     chain = managers['chains_manager'].get_react_agent_chain(llm, react_prompt, tools)
