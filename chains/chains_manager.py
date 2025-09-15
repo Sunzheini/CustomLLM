@@ -2,8 +2,11 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import BasePromptTemplate
+from langchain_core.runnables import Runnable
 from langchain_core.vectorstores import VectorStore
 from langchain.chains.base import Chain
+from langchain.agents import AgentExecutor
+from langchain.agents.react.agent import create_react_agent
 
 
 class ChainsManager:
@@ -13,7 +16,7 @@ class ChainsManager:
         pass
 
     @staticmethod
-    def get_pdf_retrieval_chain(llm: BaseChatModel, prompt: BasePromptTemplate, vectorstore: VectorStore) -> Chain:
+    def get_document_retrieval_chain(llm: BaseChatModel, prompt: BasePromptTemplate, vectorstore: VectorStore) -> Runnable:
         """
         Create a retrieval chain using the provided vectorstore and LLM.
 
@@ -42,3 +45,22 @@ class ChainsManager:
         )
 
         return retrieval_chain
+
+    @staticmethod
+    def get_react_agent_chain(llm: BaseChatModel, prompt: BasePromptTemplate, tools) -> Runnable:
+        agent = create_react_agent(
+            llm=llm,
+            prompt=prompt,
+            tools=tools,
+        )
+
+        agent_executor = AgentExecutor(
+            agent=agent,
+            tools=tools,
+            verbose=True,
+            return_intermediate_steps=True  # return intermediate steps for inspection
+        )
+
+        react_agent_chain = agent_executor
+
+        return react_agent_chain

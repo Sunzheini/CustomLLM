@@ -48,46 +48,6 @@ communications_manager = CommunicationsManager()    # 6
 
 
 @measure_and_print_time_decorator
-def function_2():
-    # -------------------------------------------------------------------------------------------------------
-    # RAG Ingestion (ingest the exampleblog.txt into a vector db
-    # -------------------------------------------------------------------------------------------------------
-    # path_to_file = './context/exampleblog.txt'
-    # loader = TextLoader(path_to_file)
-    # documents = loader.load()
-    #
-    # text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)   # chunk size 1000 tokens, no overlap
-    # texts = text_splitter.split_documents(documents)
-    # print(f"Document has been split into {len(texts)} chunks.")
-    #
-    # # embeddings = OpenAIEmbeddings(openai_api_key=key_manager.get_required_key('OPENAI_API_KEY'))
-    # embeddings = OpenAIEmbeddings()
-    # PineconeVectorStore.from_documents(texts, embeddings, index_name=index_name, pinecone_api_key=key_manager.get_required_key('PINECONE_API_KEY'))
-
-    # -------------------------------------------------------------------------------------------------------
-    # RAG Retrieval (retrieve relevant chunks from the vector db)
-    # -------------------------------------------------------------------------------------------------------
-    embeddings = OpenAIEmbeddings()
-    llm = ChatOpenAI(temperature=0, model="gpt-4.1-mini")
-
-    # query = "What are vector databases often used for?"
-    query = "Has Evan Chaki published any articles on vector databases?"
-
-    # 0
-    # https://smith.langchain.com/hub/langchain-ai/retrieval-qa-chat?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650
-    vectorstore = PineconeVectorStore(index_name=index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key)
-
-    # 1
-    retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
-
-
-    combine_docs_chain = create_stuff_documents_chain(llm=llm, prompt=retrieval_qa_chat_prompt)
-    retrieval_chain = create_retrieval_chain(retriever=vectorstore.as_retriever(), combine_docs_chain=combine_docs_chain)
-    response = retrieval_chain.invoke(input={"input": query})
-    print(response)
-
-
-@measure_and_print_time_decorator
 def function_1():
     # -------------------------------------------------------------------------------------------------------
     # Tools
@@ -176,7 +136,7 @@ def function_1():
     # 3
     response = chain.invoke(
         input={
-            "question": "what is the length of the following text? 'Elon Reeve Musk FRS'"
+            "input": "what is the length of the following text? 'Elon Reeve Musk FRS'"
         }
     )
     print(response)
@@ -203,6 +163,5 @@ if __name__ == "__main__":
     # menu = CommandMenu({
     #     '1': function_1,
     # })
-    # function_1()
-    function_2()
+    function_1()
     # menu.run()

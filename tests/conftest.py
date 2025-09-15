@@ -62,3 +62,4 @@ def managers():
 # run with `pytest -v` in th terminal
 # run with `pytest -v -s` to see print statements
 # to debug right click on the test and select "Debug ..."
+# pytest - k "llm_query" to execute a test by keyword

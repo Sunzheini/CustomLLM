@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from langchain import hub
 
-from langchain_core.prompts import BasePromptTemplate
+from langchain_core.prompts import BasePromptTemplate, PromptTemplate
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -22,14 +22,18 @@ class PromptManager:
             "langchain-ai/retrieval-qa-chat": {
                 "type": "hub",
                 "link": "https://smith.langchain.com/hub/langchain-ai/retrieval-qa-chat?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
+            },
+            "hwchase17/react": {
+                "type": "hub",
+                "link": "https://smith.langchain.com/hub/hwchase17/react?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
             }
         }
 
-    def get_prompt(self, prompt_name: str):
+    def get_prompt_template(self, prompt_name: str) -> BasePromptTemplate:
         """
         Create a prompt based on the input.
         :param prompt_name: The name of the prompt to create
-        :return: The created prompt as a string
+        :return: The created prompt as a PromptTemplate object
         """
         if prompt_name not in self.__prompt_library:
             raise ValueError(f"Prompt '{prompt_name}' not found in the prompt library.")
@@ -47,3 +51,16 @@ class PromptManager:
     def list_prompts(self) -> list:
         """Return a list of available prompt names"""
         return list(self.__prompt_library.keys())
+
+    @staticmethod
+    def prefill_existing_template(template: BasePromptTemplate, **kwargs) -> BasePromptTemplate:
+        """
+        Prefill an existing prompt template with provided arguments.
+        Now accepts PromptTemplate objects instead of strings.
+
+        :param template: The PromptTemplate object to prefill
+        :param kwargs: Keyword arguments for the template
+        :return: The filled prompt template
+        """
+        # Use the partial method directly on the PromptTemplate object
+        return template.partial(**kwargs)

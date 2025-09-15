@@ -33,13 +33,13 @@ def test_06_retrieve_from_txt_in_cloud(base_dir, managers):
     # 3
     query = "Is this text related to Wikipedia?"
     # query = "Has Evan Chaki published any articles on vector databases?"
-    retrieval_qa_chat_prompt = managers['prompt_manager'].get_prompt("langchain-ai/retrieval-qa-chat")
+    retrieval_qa_chat_prompt = managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
 
     # 4
     llm = managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
 
     # 5
-    chain = managers['chains_manager'].get_pdf_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
+    chain = managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
 
     # 6
     response = chain.invoke(input={"input": query})

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Annotated
 
 from dotenv import load_dotenv
 from langchain.agents import tool
@@ -15,15 +16,14 @@ class ToolsManager:
     """
     Manages a collection of tools for use with language models. You can define your own
     tools here or import them from other modules.
+    Tools allow llms to access external utilities e.g. search, calculations, etc.
     """
     def __init__(self):
         self.tools = {}
 
     @tool
-    def get_text_length(self, text: str) -> int:
-        """Returns the length of the input text."""     # llm uses this description to decide when to use this tool
+    def get_text_length(text: Annotated[str, "The text to measure"]) -> int:
+        """Returns the length of the input text."""
         print(f"get_text_length enter with {text=}")
-        text = text.strip("'\n").strip(
-            '"'
-        )   # clean up the input text from extra quotes and newlines
+        text = text.strip("'\n").strip('"')  # clean up the input text from extra quotes and newlines
         return len(text)
