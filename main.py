@@ -16,7 +16,10 @@ from langchain_tavily import TavilyCrawl, TavilyExtract, TavilyMap
 
 from core.command_menu import CommandMenu
 
+from pinecone import Pinecone
+
 from embeddings.embeddings_manager import EmbeddingsManager
+from support.callback_handler import CustomCallbackHandler
 from tools.tools_manager import ToolsManager
 from vector_stores.vector_store_manager import VectorStoreManager
 from prompts.prompt_manager import PromptManager
@@ -185,6 +188,45 @@ async def function_1():
             print(f"❌ Batch {batch_id + 1} failed after {max_retries} attempts")
             return {"batch_id": batch_id, "success": False, "attempt": max_retries}
 
+    def cleanup_records_in_cloud_vector_store_after_tests():
+        try:
+            # Initialize Pinecone client (v3+ syntax)
+            pc = Pinecone(api_key=pinecone_api_key)
+
+            # Check if index exists
+            existing_indexes = [idx.name for idx in pc.list_indexes()]
+            if index2_name not in existing_indexes:
+                print(f"Index {index2_name} does not exist, nothing to clean up")
+                return
+
+            # Get the index
+            index = pc.Index(index2_name)
+
+            # Get index stats to see if there are vectors to delete
+            stats = index.describe_index_stats()
+            total_vectors = stats.get('total_vector_count', 0)
+
+            if total_vectors > 0:
+                print(f"Cleaning up {total_vectors} vectors from {index2_name}")
+
+                # Option 1: Delete all vectors from all namespaces
+                index.delete(delete_all=True)
+
+                # Option 2: If you need to delete from specific namespaces:
+                # namespaces = stats.get('namespaces', {})
+                # for namespace in namespaces.keys():
+                #     print(f"Deleting vectors from namespace: {namespace}")
+                #     index.delete(delete_all=True, namespace=namespace)
+
+                print("✓ Pinecone index cleaned up successfully")
+            else:
+                print("No vectors to clean up")
+
+        except Exception as e:
+            print(f"Warning: Could not cleanup Pinecone index {index2_name}: {e}")
+            # Don't fail the tests due to cleanup issues
+            pass
+
     # Create semaphore to control concurrency (reduced to 2 for better stability)
     max_concurrent = 4  # Reduced from 3 for better session management
     semaphore = asyncio.Semaphore(max_concurrent)
@@ -229,6 +271,21 @@ async def function_1():
     print(f"🔄 Max concurrent requests: {max_concurrent}")
 
     # 3
+    query = "What is a LangChain Chain?"
+    retrieval_qa_chat_prompt = managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
+
+    # 4
+    llm = managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
+
+    # 5
+    chain = managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
+
+    # 6
+    response = chain.invoke(input={"input": query})
+    print(f"\nAnswer: {response['answer']}")
+
+    # ----------------------------------------------------------------------------------
+    cleanup_records_in_cloud_vector_store_after_tests()  # Clean up after test run
 
 
 if __name__ == "__main__":
