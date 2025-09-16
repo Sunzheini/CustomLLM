@@ -25,6 +25,7 @@ usage: https://platform.openai.com/settings/organization/usage
 # Vector DB
 pip install langchain-pinecone
 Pinecone: https://www.pinecone.io/
-Create Index
+Create Index:
+    e.g. text-embedding-3-small (matching the embeddings in the code), 1536, serverless, aws, default region
 Create a var INDEX_NAME=custom-index
 

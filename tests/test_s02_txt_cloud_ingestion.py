@@ -57,7 +57,7 @@ def test_05_ingest_txt_into_cloud_vector_store(base_dir, managers):
     # Act
     # ----------------------------------------------------------------------------------
     # 0
-    embeddings = managers['embeddings_manager'].open_ai_embeddings
+    embeddings = managers['embeddings_manager'].open_ai_embeddings()
 
     # 2
     pinecone_index_name = index_name

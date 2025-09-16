@@ -18,7 +18,7 @@ def test_03_retrieve_from_pdf_in_local(base_dir, managers):
     # Act
     # ----------------------------------------------------------------------------------
     # 0
-    embeddings = managers['embeddings_manager'].open_ai_embeddings
+    embeddings = managers['embeddings_manager'].open_ai_embeddings()
 
     # 2
     faiss_path = str(base_dir / 'faiss_index_react_paper')

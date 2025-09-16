@@ -20,7 +20,7 @@ def test_06_retrieve_from_txt_in_cloud(base_dir, managers):
     # Act
     # ----------------------------------------------------------------------------------
     # 0
-    embeddings = managers['embeddings_manager'].open_ai_embeddings
+    embeddings = managers['embeddings_manager'].open_ai_embeddings()
 
     # 2
     pinecone_index_name = index_name
