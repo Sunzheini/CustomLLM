@@ -19,12 +19,18 @@ if 'prompt_history' not in st.session_state:
 if 'answer_history' not in st.session_state:
     st.session_state['answer_history'] = []
 
+if 'chat_history' not in st.session_state:
+    st.session_state['chat_history'] = []   # (user, bot) tuples
+
 if 'processing' not in st.session_state:
     st.session_state['processing'] = False
 
 
-def generate_llm_response(user_prompt):
+def generate_llm_response(user_prompt, chat_history=None):
     time.sleep(1)  # Simulate processing time
+
+    print(chat_history)
+
     return f"Response to: '{user_prompt}'\n\nThis is ..."
 
 
@@ -34,10 +40,13 @@ if button and prompt:
 
     with st.spinner("Processing..."):
         try:
-            generated_response = generate_llm_response(prompt)
+            generated_response = generate_llm_response(prompt, chat_history=st.session_state['chat_history'])
 
             st.session_state['prompt_history'].append(prompt)
             st.session_state['answer_history'].append(generated_response)
+
+            st.session_state['chat_history'].append(('human', prompt))
+            st.session_state['chat_history'].append(('ai', generated_response))
 
             st.success("Done!")
             st.balloons()
@@ -55,10 +64,13 @@ if prompt and not button and not st.session_state['processing']:
 
     with st.spinner("Processing..."):
         try:
-            generated_response = generate_llm_response(prompt)
+            generated_response = generate_llm_response(prompt, chat_history=st.session_state['chat_history'])
 
             st.session_state['prompt_history'].append(prompt)
             st.session_state['answer_history'].append(generated_response)
+
+            st.session_state['chat_history'].append(('human', prompt))
+            st.session_state['chat_history'].append(('ai', generated_response))
 
             st.success("Done!")
             st.balloons()
