@@ -1,305 +1,76 @@
-import asyncio
-import os
-import ssl
-from typing import List
+import time
 
-import certifi
-from pathlib import Path
-
-from dotenv import load_dotenv
-from langchain_chroma import Chroma
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
-from langchain_tavily import TavilyCrawl, TavilyExtract, TavilyMap
-
-from core.command_menu import CommandMenu
-
-from pinecone import Pinecone
-
-from embeddings.embeddings_manager import EmbeddingsManager
-from support.callback_handler import CustomCallbackHandler
-from tools.tools_manager import ToolsManager
-from vector_stores.vector_store_manager import VectorStoreManager
-from prompts.prompt_manager import PromptManager
-from llm_manager import LlmManager
-from chains.chains_manager import ChainsManager
-from communication.communications_manager import CommunicationsManager
-
-BASE_DIR = Path(__file__).resolve().parent
-
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
-
-tavily_api_key = os.getenv('TAVILY_API_KEY')
-pinecone_api_key = os.getenv('PINECONE_API_KEY')
-index2_name = os.getenv('INDEX2_NAME')
+import streamlit as st
 
 
-class SetManagers:
-    @property
-    def managers(self):
-        return {
-            'embeddings_manager': EmbeddingsManager(),  # 0
-            'tools_manager': ToolsManager(),  # 1
-            'vector_store_manager': VectorStoreManager(),  # 2
-            'prompt_manager': PromptManager(),  # 3
-            'llm_manager': LlmManager(),  # 4
-            'chains_manager': ChainsManager(),  # 5
-            'communications_manager': CommunicationsManager(),  # 6
-        }
+st.header ("CustomLLM Project")
+
+prompt = st.text_input(
+    "Prompt",                           # label
+    placeholder="Enter your prompt:"    # placeholder text
+)
+
+button = st.button("Go")
 
 
-# --------------------------------------------------------------------------------
-"""
-Secure HTTPS Connections - It ensures that your LangChain application can 
-securely connect to external APIs and services (like OpenAI, Hugging Face, 
-etc.) without SSL certificate verification errors. Avoiding SSL: 
-CERTIFICATE_VERIFY_FAILED errors
-"""
-ssl_context = ssl.create_default_context(
-    cafile=certifi.where())  # Creates SSL context using certifi's certificate bundle
-os.environ['SSL_CERT_FILE'] = certifi.where()  # Sets environment variable for SSL certificates
-os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()  # Specifically configures the requests library to use certifi
+if 'prompt_history' not in st.session_state:
+    st.session_state['prompt_history'] = []
+
+if 'answer_history' not in st.session_state:
+    st.session_state['answer_history'] = []
+
+if 'processing' not in st.session_state:
+    st.session_state['processing'] = False
 
 
-# --------------------------------------------------------------------------------
-async def function_1():
-    managers = SetManagers().managers
-    tavily_crawl = TavilyCrawl()
+def generate_llm_response(user_prompt):
+    time.sleep(1)  # Simulate processing time
+    return f"Response to: '{user_prompt}'\n\nThis is ..."
 
-    async def run_crawl():
-        result = await tavily_crawl.ainvoke({
-            'url': "https://python.langchain.com/",
-            'max_depth': 2,  # start with 2, then increase to max 5
-            'extract_depth': 'advanced',
-            'instructions': 'content on ai agents',  # focus on this topic
-        })
 
-        initial_results = result['results']
-        print(f"Initial crawl found {len(initial_results)} results")
+# Handle button click and prompt submission
+if button and prompt:
+    st.session_state['processing'] = True
 
-        all_docs = [
-            Document(
-                page_content=result['raw_content'],
-                metadata={"source": result['url']}
-            ) for result in result['results']]
-        print(f"{len(all_docs)} documents created from initial crawl")
-
-        return all_docs
-
-    documents = await run_crawl()
-
-    # ----------------------------------------------------------------------------------
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
-    texts = text_splitter.split_documents(documents)
-
-    print(f"Document has been split into {len(texts)} chunks.")
-
-    # create batches
-    texts = [texts[i:i + 10] for i in range(0, len(texts), 10)]
-    print(f"Chunks have been split into {len(texts)} batches.")
-
-    # ----------------------------------------------------------------------------------
-    # Act
-    # ----------------------------------------------------------------------------------
-    # 0
-    embeddings = managers['embeddings_manager'].open_ai_embeddings(
-        model="text-embedding-3-small",  # one of OpenAI's latest and most cost-effective embedding models
-        show_progress_bar=True,  # display a progress bar
-        chunk_size=50,  # how many text strings are sent in a single batch request to the OpenAI API
-        retry_min_seconds=10,  # wait at least 10 seconds before retrying the failed request
-    )
-
-    # 1
-
-    # 2
-    pinecone_index_name = index2_name
-    vectorstore = (managers['vector_store_manager']
-    .get_vector_store(
-        'pinecone', 'load',
-        index_name=pinecone_index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key
-    ))
-
-    # ASYNCHRONOUS SOLUTION: Controlled concurrency with session recreation and retry logic
-    def get_fresh_vectorstore():
-        """Create a new vectorstore instance to handle session issues"""
-        return (managers['vector_store_manager']
-        .get_vector_store(
-            'pinecone', 'load',
-            index_name=pinecone_index_name,
-            embedding=embeddings,
-            pinecone_api_key=pinecone_api_key
-        ))
-
-    async def add_batch_with_retry(batch_to_add: List[Document], batch_id: int, semaphore: asyncio.Semaphore,
-                                   max_retries: int = 3) -> dict:
-        current_vectorstore = vectorstore  # Start with the original
-
-        async with semaphore:  # Limit concurrent requests
-            for attempt in range(max_retries):
-                try:
-                    # Add some jitter to prevent thundering herd
-                    if batch_id > 0:
-                        await asyncio.sleep(0.1 * batch_id)
-
-                    await current_vectorstore.aadd_documents(batch_to_add)
-                    print(
-                        f"✓ Batch {batch_id + 1} ({len(batch_to_add)} docs) added successfully (attempt {attempt + 1})")
-                    return {"batch_id": batch_id, "success": True, "attempt": attempt + 1}
-
-                except Exception as e:
-                    error_msg = str(e).lower()
-                    print(f"⚠ Batch {batch_id + 1} error (attempt {attempt + 1}): {e}")
-
-                    # Handle specific error types
-                    if "session is closed" in error_msg or "connection" in error_msg or "client session" in error_msg:
-                        # For connection issues, recreate vectorstore and wait longer
-                        if attempt < max_retries - 1:
-                            print(f"🔄 Recreating vectorstore connection for batch {batch_id + 1}...")
-                            try:
-                                current_vectorstore = get_fresh_vectorstore()
-                                print(f"✅ New vectorstore created for batch {batch_id + 1}")
-                            except Exception as vs_error:
-                                print(f"❌ Failed to recreate vectorstore: {vs_error}")
-
-                            wait_time = (attempt + 1) * 2  # Wait before retry
-                            print(f"Waiting {wait_time} seconds before retry...")
-                            await asyncio.sleep(wait_time)
-                        continue
-
-                    elif "rate limit" in error_msg or "429" in error_msg:
-                        # For rate limiting, wait longer
-                        if attempt < max_retries - 1:
-                            wait_time = (attempt + 1) * 5
-                            print(f"Rate limit detected. Waiting {wait_time} seconds before retry...")
-                            await asyncio.sleep(wait_time)
-                        continue
-
-                    else:
-                        # For other errors, standard backoff
-                        if attempt < max_retries - 1:
-                            wait_time = (attempt + 1) * 2
-                            print(f"Retrying batch {batch_id + 1} in {wait_time} seconds...")
-                            await asyncio.sleep(wait_time)
-                        continue
-
-            print(f"❌ Batch {batch_id + 1} failed after {max_retries} attempts")
-            return {"batch_id": batch_id, "success": False, "attempt": max_retries}
-
-    def cleanup_records_in_cloud_vector_store_after_tests():
+    with st.spinner("Processing..."):
         try:
-            # Initialize Pinecone client (v3+ syntax)
-            pc = Pinecone(api_key=pinecone_api_key)
+            generated_response = generate_llm_response(prompt)
 
-            # Check if index exists
-            existing_indexes = [idx.name for idx in pc.list_indexes()]
-            if index2_name not in existing_indexes:
-                print(f"Index {index2_name} does not exist, nothing to clean up")
-                return
+            st.session_state['prompt_history'].append(prompt)
+            st.session_state['answer_history'].append(generated_response)
 
-            # Get the index
-            index = pc.Index(index2_name)
-
-            # Get index stats to see if there are vectors to delete
-            stats = index.describe_index_stats()
-            total_vectors = stats.get('total_vector_count', 0)
-
-            if total_vectors > 0:
-                print(f"Cleaning up {total_vectors} vectors from {index2_name}")
-
-                # Option 1: Delete all vectors from all namespaces
-                index.delete(delete_all=True)
-
-                # Option 2: If you need to delete from specific namespaces:
-                # namespaces = stats.get('namespaces', {})
-                # for namespace in namespaces.keys():
-                #     print(f"Deleting vectors from namespace: {namespace}")
-                #     index.delete(delete_all=True, namespace=namespace)
-
-                print("✓ Pinecone index cleaned up successfully")
-            else:
-                print("No vectors to clean up")
+            st.success("Done!")
+            st.balloons()
 
         except Exception as e:
-            print(f"Warning: Could not cleanup Pinecone index {index2_name}: {e}")
-            # Don't fail the tests due to cleanup issues
-            pass
+            st.error(f"Error: {e}")
 
-    # Create semaphore to control concurrency (reduced to 2 for better stability)
-    max_concurrent = 4  # Reduced from 3 for better session management
-    semaphore = asyncio.Semaphore(max_concurrent)
-
-    # Create tasks with batch IDs for better tracking
-    add_tasks = [
-        add_batch_with_retry(batch, i, semaphore)
-        for i, batch in enumerate(texts)
-    ]
-
-    print(f"Adding {len(add_tasks)} batches asynchronously with max {max_concurrent} concurrent requests...")
-    print("Starting async batch processing...")
-
-    # Execute all tasks concurrently but with controlled concurrency
-    results = await asyncio.gather(*add_tasks, return_exceptions=True)
-
-    # Analyze results
-    successful_batches = 0
-    failed_batches = 0
-    total_attempts = 0
-
-    for result in results:
-        if isinstance(result, Exception):
-            print(f"❌ Task failed with exception: {result}")
-            failed_batches += 1
-        elif isinstance(result, dict):
-            if result["success"]:
-                successful_batches += 1
-            else:
-                failed_batches += 1
-            total_attempts += result["attempt"]
-        else:
-            print(f"⚠ Unexpected result type: {result}")
-            failed_batches += 1
-
-    avg_attempts = total_attempts / len(results) if results else 0
-
-    print(f"\n📊 ASYNC PROCESSING SUMMARY:")
-    print(f"✅ Successful batches: {successful_batches}")
-    print(f"❌ Failed batches: {failed_batches}")
-    print(f"📈 Average attempts per batch: {avg_attempts:.1f}")
-    print(f"🔄 Max concurrent requests: {max_concurrent}")
-
-    # 3
-    query = "What is a LangChain Chain?"
-    retrieval_qa_chat_prompt = managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
-
-    # 4
-    llm = managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
-
-    # 5
-    chain = managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
-
-    # 6
-    response = chain.invoke(input={"input": query})
-    print(f"\nAnswer: {response['answer']}")
-
-    # ----------------------------------------------------------------------------------
-    # rename for the frontend
-    # ----------------------------------------------------------------------------------
-    new_result = {
-        "query": response['input'],
-        "answer": response['answer'],
-        "source_documents": response['context'],
-    }
-
-    # ----------------------------------------------------------------------------------
-    cleanup_records_in_cloud_vector_store_after_tests()  # Clean up after test run
+        finally:
+            st.session_state['processing'] = False
 
 
-if __name__ == "__main__":
-    # menu = CommandMenu({
-    #     '1': function_1,
-    # })
-    # menu.run()
-    asyncio.run(function_1())
+# Also handle Enter key in text input, instead of only button click
+if prompt and not button and not st.session_state['processing']:
+    st.session_state['processing'] = True
+
+    with st.spinner("Processing..."):
+        try:
+            generated_response = generate_llm_response(prompt)
+
+            st.session_state['prompt_history'].append(prompt)
+            st.session_state['answer_history'].append(generated_response)
+
+            st.success("Done!")
+            st.balloons()
+
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+        finally:
+            st.session_state['processing'] = False
+
+
+if st.session_state['answer_history']:
+    for generated_response, prompt in zip(st.session_state['answer_history'], st.session_state['prompt_history']):
+        st.chat_message("user").write(prompt)
+        st.chat_message("assistant").write(generated_response)
