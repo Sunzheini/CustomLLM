@@ -1,7 +1,7 @@
 import shutil
 import pytest
 
-from tests.conftest import split_pdf
+from tests.conftest import split_document
 
 
 def test_01_split_pdf_into_chunks():
@@ -13,7 +13,7 @@ def test_01_split_pdf_into_chunks():
     # Act
     # ----------------------------------------------------------------------------------
     path_to_file = './context/react_paper.pdf'
-    texts = split_pdf('.pdf', path_to_file)
+    texts = split_document('.pdf', path_to_file)
 
     # ----------------------------------------------------------------------------------
     # Assert
@@ -36,7 +36,7 @@ def test_02_ingest_pdf_into_local_vector_store(base_dir, managers):
     # Arrange
     # ----------------------------------------------------------------------------------
     path_to_file = './context/react_paper.pdf'
-    texts = split_pdf('.pdf', path_to_file)
+    texts = split_document('.pdf', path_to_file)
 
     # ----------------------------------------------------------------------------------
     # Act

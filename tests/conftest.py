@@ -1,7 +1,9 @@
 from pathlib import Path
 
 import pytest
-from langchain_text_splitters import CharacterTextSplitter
+from langchain_core.documents import Document
+from langchain_tavily import TavilyCrawl
+from langchain_text_splitters import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 
 from embeddings.embeddings_manager import EmbeddingsManager
@@ -13,11 +15,10 @@ from chains.chains_manager import ChainsManager
 from communication.communications_manager import CommunicationsManager
 
 
-def split_pdf(file_type, file_path):
+def split_document(file_type, file_path):
     """
     Loads and splits the file (.pdf or .txt) once for multiple tests.
     """
-
     if not Path(file_path).exists():
         pytest.skip("File not found - cannot test splitting")
         return None
@@ -32,13 +33,41 @@ def split_pdf(file_type, file_path):
         loader = TextLoader(file_path, encoding='utf8')
 
     documents = loader.load()
-
     text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=30, separator="\n")
     texts = text_splitter.split_documents(documents)
 
     print(f"Document has been split into {len(texts)} chunks.")
     return texts
 
+
+def split_document_list(documents_list):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
+    texts = text_splitter.split_documents(documents_list)
+    print(f"Document has been split into {len(texts)} chunks.")
+    return texts
+
+
+async def run_crawl():
+    tavily_crawl = TavilyCrawl()
+
+    result = await tavily_crawl.ainvoke({
+        'url': "https://python.langchain.com/",
+        'max_depth': 2,                             # start with 2, then increase to max 5
+        'extract_depth': 'advanced',
+        'instructions': 'content on ai agents',     # focus on this topic
+    })
+
+    initial_results = result['results']
+    print(f"Initial crawl found {len(initial_results)} results")
+
+    all_docs = [
+        Document(
+            page_content=result['raw_content'],
+            metadata={"source": result['url']}
+        ) for result in result['results']]
+    print(f"{len(all_docs)} documents created from initial crawl")
+
+    return all_docs
 
 
 @pytest.fixture(scope="session")

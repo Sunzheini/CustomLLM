@@ -5,7 +5,7 @@ import pytest
 from pinecone import Pinecone
 from dotenv import load_dotenv
 
-from tests.conftest import split_pdf
+from tests.conftest import split_document
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -15,6 +15,7 @@ if os.path.exists(os.path.join(BASE_DIR, '.env')):
 
 pinecone_api_key = os.getenv('PINECONE_API_KEY')
 index_name = os.getenv('INDEX_NAME')
+index2_name = os.getenv('INDEX_NAME')
 
 
 def test_04_split_txt_into_chunks():
@@ -25,7 +26,7 @@ def test_04_split_txt_into_chunks():
     # Act
     # ----------------------------------------------------------------------------------
     path_to_file = './context/exampleblog.txt'
-    texts = split_pdf('.txt', path_to_file)
+    texts = split_document('.txt', path_to_file)
 
     # ----------------------------------------------------------------------------------
     # Assert
@@ -48,7 +49,7 @@ def test_05_ingest_txt_into_cloud_vector_store(base_dir, managers):
     # Arrange
     # ----------------------------------------------------------------------------------
     path_to_file = './context/exampleblog.txt'
-    texts = split_pdf('.txt', path_to_file)
+    texts = split_document('.txt', path_to_file)
 
     # reduce texts to 3 for faster testing
     texts = texts[:3]
@@ -100,9 +101,11 @@ def cleanup_records_in_cloud_vector_store_after_tests(base_dir):
     yield  # This runs before tests
 
     """Delete all vectors from a Pinecone index."""
+
+    all_indexes_in_pinecone = [index_name, index2_name]
     try:
-        if not pinecone_api_key or not index_name:
-            print("Warning: Missing Pinecone API key or index name for cleanup")
+        if not pinecone_api_key or not all_indexes_in_pinecone:
+            print("Warning: Missing Pinecone API key or index names for cleanup")
             return
 
         # Initialize Pinecone client (v3+ syntax)
@@ -110,34 +113,37 @@ def cleanup_records_in_cloud_vector_store_after_tests(base_dir):
 
         # Check if index exists
         existing_indexes = [idx.name for idx in pc.list_indexes()]
-        if index_name not in existing_indexes:
-            print(f"Index {index_name} does not exist, nothing to clean up")
-            return
 
-        # Get the index
-        index = pc.Index(index_name)
+        for idx in all_indexes_in_pinecone:
+            if idx not in existing_indexes:
+                print(f"Index {idx} does not exist, nothing to clean up there")
+                return
 
-        # Get index stats to see if there are vectors to delete
-        stats = index.describe_index_stats()
-        total_vectors = stats.get('total_vector_count', 0)
+        for idx in all_indexes_in_pinecone:
+            # Get the index
+            index = pc.Index(idx)
 
-        if total_vectors > 0:
-            print(f"Cleaning up {total_vectors} vectors from {index_name}")
+            # Get index stats to see if there are vectors to delete
+            stats = index.describe_index_stats()
+            total_vectors = stats.get('total_vector_count', 0)
 
-            # Option 1: Delete all vectors from all namespaces
-            index.delete(delete_all=True)
+            if total_vectors > 0:
+                print(f"Cleaning up {total_vectors} vectors from {index}")
 
-            # Option 2: If you need to delete from specific namespaces:
-            # namespaces = stats.get('namespaces', {})
-            # for namespace in namespaces.keys():
-            #     print(f"Deleting vectors from namespace: {namespace}")
-            #     index.delete(delete_all=True, namespace=namespace)
+                # Option 1: Delete all vectors from all namespaces
+                index.delete(delete_all=True)
 
-            print("✓ Pinecone index cleaned up successfully")
-        else:
-            print("No vectors to clean up")
+                # Option 2: If you need to delete from specific namespaces:
+                # namespaces = stats.get('namespaces', {})
+                # for namespace in namespaces.keys():
+                #     print(f"Deleting vectors from namespace: {namespace}")
+                #     index.delete(delete_all=True, namespace=namespace)
+
+                print("✓ Pinecone index cleaned up successfully")
+            else:
+                print("No vectors to clean up")
 
     except Exception as e:
-        print(f"Warning: Could not cleanup Pinecone index {index_name}: {e}")
+        print(f"Warning: Could not cleanup Pinecone indexes {[idx for idx in all_indexes_in_pinecone]}: {e}")
         # Don't fail the tests due to cleanup issues
         pass

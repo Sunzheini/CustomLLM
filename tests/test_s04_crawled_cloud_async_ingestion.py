@@ -1,31 +1,16 @@
-import asyncio
 import os
 import ssl
-from typing import List
-
+import asyncio
 import certifi
+from typing import List
 from pathlib import Path
 
+import pytest
 from dotenv import load_dotenv
-from langchain_chroma import Chroma
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
-from langchain_pinecone import PineconeVectorStore
-from langchain_tavily import TavilyCrawl, TavilyExtract, TavilyMap
 
-from core.command_menu import CommandMenu
+from tests.conftest import split_document, run_crawl, split_document_list
 
-from pinecone import Pinecone
-
-from embeddings.embeddings_manager import EmbeddingsManager
-from support.callback_handler import CustomCallbackHandler
-from tools.tools_manager import ToolsManager
-from vector_stores.vector_store_manager import VectorStoreManager
-from prompts.prompt_manager import PromptManager
-from llm_manager import LlmManager
-from chains.chains_manager import ChainsManager
-from communication.communications_manager import CommunicationsManager
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -37,21 +22,6 @@ pinecone_api_key = os.getenv('PINECONE_API_KEY')
 index2_name = os.getenv('INDEX2_NAME')
 
 
-class SetManagers:
-    @property
-    def managers(self):
-        return {
-            'embeddings_manager': EmbeddingsManager(),  # 0
-            'tools_manager': ToolsManager(),  # 1
-            'vector_store_manager': VectorStoreManager(),  # 2
-            'prompt_manager': PromptManager(),  # 3
-            'llm_manager': LlmManager(),  # 4
-            'chains_manager': ChainsManager(),  # 5
-            'communications_manager': CommunicationsManager(),  # 6
-        }
-
-
-# --------------------------------------------------------------------------------
 """
 Secure HTTPS Connections - It ensures that your LangChain application can 
 securely connect to external APIs and services (like OpenAI, Hugging Face, 
@@ -64,55 +34,52 @@ os.environ['SSL_CERT_FILE'] = certifi.where()  # Sets environment variable for S
 os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()  # Specifically configures the requests library to use certifi
 
 
-# --------------------------------------------------------------------------------
-async def function_1():
-    managers = SetManagers().managers
-    tavily_crawl = TavilyCrawl()
-
-    async def run_crawl():
-        result = await tavily_crawl.ainvoke({
-            'url': "https://python.langchain.com/",
-            'max_depth': 2,  # start with 2, then increase to max 5
-            'extract_depth': 'advanced',
-            'instructions': 'content on ai agents',  # focus on this topic
-        })
-
-        initial_results = result['results']
-        print(f"Initial crawl found {len(initial_results)} results")
-
-        all_docs = [
-            Document(
-                page_content=result['raw_content'],
-                metadata={"source": result['url']}
-            ) for result in result['results']]
-        print(f"{len(all_docs)} documents created from initial crawl")
-
-        return all_docs
-
-    documents = await run_crawl()
+def test_09_run_crawl_and_split_crawled_documents():
+    """
+    Test the crawling of documents and their splitting into manageable chunks.
+    Ensures that documents are crawled and split correctly with appropriate metadata.
+    """
+    # ----------------------------------------------------------------------------------
+    # Arrange
+    # ----------------------------------------------------------------------------------
+    documents = asyncio.run(run_crawl())
 
     # ----------------------------------------------------------------------------------
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
-    texts = text_splitter.split_documents(documents)
+    # Act
+    # ----------------------------------------------------------------------------------
+    texts = split_document_list(documents)
 
-    print(f"Document has been split into {len(texts)} chunks.")
+    # ----------------------------------------------------------------------------------
+    # Assert
+    # ----------------------------------------------------------------------------------
+    assert len(texts) > 0
+    assert isinstance(texts[0], Document)
+    assert texts[0].page_content is not None
+    assert texts[0].metadata is not None
+    assert 3000 <= len(texts[0].page_content) <= 5000  # chunk size
+
+
+@pytest.mark.asyncio
+async def test_10_crawled_cloud_async_ingestion(base_dir, managers):
+    # ----------------------------------------------------------------------------------
+    # Arrange
+    # ----------------------------------------------------------------------------------
+    documents = await run_crawl()
+    texts = split_document_list(documents)
 
     # create batches
     texts = [texts[i:i + 10] for i in range(0, len(texts), 10)]
-    print(f"Chunks have been split into {len(texts)} batches.")
 
     # ----------------------------------------------------------------------------------
     # Act
     # ----------------------------------------------------------------------------------
     # 0
     embeddings = managers['embeddings_manager'].open_ai_embeddings(
-        model="text-embedding-3-small",  # one of OpenAI's latest and most cost-effective embedding models
-        show_progress_bar=True,  # display a progress bar
-        chunk_size=50,  # how many text strings are sent in a single batch request to the OpenAI API
-        retry_min_seconds=10,  # wait at least 10 seconds before retrying the failed request
+        model="text-embedding-3-small",     # one of OpenAI's latest and most cost-effective embedding models
+        show_progress_bar=True,             # display a progress bar
+        chunk_size=50,                      # how many text strings are sent in a single batch request to the OpenAI API
+        retry_min_seconds=10,               # wait at least 10 seconds before retrying the failed request
     )
-
-    # 1
 
     # 2
     pinecone_index_name = index2_name
@@ -133,8 +100,7 @@ async def function_1():
             pinecone_api_key=pinecone_api_key
         ))
 
-    async def add_batch_with_retry(batch_to_add: List[Document], batch_id: int, semaphore: asyncio.Semaphore,
-                                   max_retries: int = 3) -> dict:
+    async def add_batch_with_retry(batch_to_add: List[Document], batch_id: int, semaphore: asyncio.Semaphore, max_retries: int = 3) -> dict:
         current_vectorstore = vectorstore  # Start with the original
 
         async with semaphore:  # Limit concurrent requests
@@ -188,45 +154,6 @@ async def function_1():
             print(f"❌ Batch {batch_id + 1} failed after {max_retries} attempts")
             return {"batch_id": batch_id, "success": False, "attempt": max_retries}
 
-    def cleanup_records_in_cloud_vector_store_after_tests():
-        try:
-            # Initialize Pinecone client (v3+ syntax)
-            pc = Pinecone(api_key=pinecone_api_key)
-
-            # Check if index exists
-            existing_indexes = [idx.name for idx in pc.list_indexes()]
-            if index2_name not in existing_indexes:
-                print(f"Index {index2_name} does not exist, nothing to clean up")
-                return
-
-            # Get the index
-            index = pc.Index(index2_name)
-
-            # Get index stats to see if there are vectors to delete
-            stats = index.describe_index_stats()
-            total_vectors = stats.get('total_vector_count', 0)
-
-            if total_vectors > 0:
-                print(f"Cleaning up {total_vectors} vectors from {index2_name}")
-
-                # Option 1: Delete all vectors from all namespaces
-                index.delete(delete_all=True)
-
-                # Option 2: If you need to delete from specific namespaces:
-                # namespaces = stats.get('namespaces', {})
-                # for namespace in namespaces.keys():
-                #     print(f"Deleting vectors from namespace: {namespace}")
-                #     index.delete(delete_all=True, namespace=namespace)
-
-                print("✓ Pinecone index cleaned up successfully")
-            else:
-                print("No vectors to clean up")
-
-        except Exception as e:
-            print(f"Warning: Could not cleanup Pinecone index {index2_name}: {e}")
-            # Don't fail the tests due to cleanup issues
-            pass
-
     # Create semaphore to control concurrency (reduced to 2 for better stability)
     max_concurrent = 4  # Reduced from 3 for better session management
     semaphore = asyncio.Semaphore(max_concurrent)
@@ -270,36 +197,7 @@ async def function_1():
     print(f"📈 Average attempts per batch: {avg_attempts:.1f}")
     print(f"🔄 Max concurrent requests: {max_concurrent}")
 
-    # 3
-    query = "What is a LangChain Chain?"
-    retrieval_qa_chat_prompt = managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
-
-    # 4
-    llm = managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
-
-    # 5
-    chain = managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
-
-    # 6
-    response = chain.invoke(input={"input": query})
-    print(f"\nAnswer: {response['answer']}")
-
     # ----------------------------------------------------------------------------------
-    # rename for the frontend
+    # Assert - Verify the vector store was created correctly
     # ----------------------------------------------------------------------------------
-    new_result = {
-        "query": response['input'],
-        "answer": response['answer'],
-        "source_documents": response['context'],
-    }
-
-    # ----------------------------------------------------------------------------------
-    cleanup_records_in_cloud_vector_store_after_tests()  # Clean up after test run
-
-
-if __name__ == "__main__":
-    # menu = CommandMenu({
-    #     '1': function_1,
-    # })
-    # menu.run()
-    asyncio.run(function_1())
+    assert successful_batches == len(texts)
