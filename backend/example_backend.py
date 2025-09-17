@@ -228,7 +228,12 @@ class ExampleBackend:
         llm = self.managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
 
         # 5
-        chain = self.managers['chains_manager'].get_document_retrieval_chain_with_history(llm, qa_chat_prompt, rephrase_prompt, vectorstore)
+        chain = self.managers['chains_manager'].get_document_retrieval_chain_with_history(
+            llm,
+            qa_chat_prompt,
+            rephrase_prompt,
+            vectorstore
+        )
 
         # 6
         response = chain.invoke(input={"input": query, "chat_history": chat_history})
