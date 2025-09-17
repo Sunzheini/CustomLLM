@@ -1,7 +1,7 @@
 import asyncio
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 
 from dotenv import load_dotenv
 from langchain_core.documents import Document
@@ -203,7 +203,7 @@ class ExampleBackend:
             # Don't fail the tests due to cleanup issues
             pass
 
-    def generate_response(self, user_prompt, chat_history=None):
+    def generate_response(self, user_prompt, chat_history: List[Dict[str, Any]]):
         embeddings = self.managers['embeddings_manager'].open_ai_embeddings(
             model="text-embedding-3-small",
             show_progress_bar=True,
@@ -220,15 +220,26 @@ class ExampleBackend:
         ))
 
         # 3
-        query = "What is a LangChain Chain?"
-        retrieval_qa_chat_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
+        query = user_prompt
+        qa_chat_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
+        rephrase_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/chat-langchain-rephrase")
 
         # 4
         llm = self.managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
 
         # 5
-        chain = self.managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
+        chain = self.managers['chains_manager'].get_document_retrieval_chain_with_history(llm, qa_chat_prompt, rephrase_prompt, vectorstore)
 
         # 6
-        response = chain.invoke(input={"input": query})
-        return response['answer']
+        response = chain.invoke(input={"input": query, "chat_history": chat_history})
+
+        new_result = {
+            "query": response['input'],
+            "result": response['answer'],
+            "source_documents": response['context'],
+        }
+
+        return new_result
+
+    # What is LangChain?
+    # What did i just ask you?

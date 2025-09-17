@@ -9,7 +9,7 @@ class StreamlitFrontend:
         self.backend = backend_object
         self._initialize_frontend()
 
-    def _generate_llm_response(self, user_prompt, chat_history=None):
+    def _generate_llm_response(self, user_prompt, chat_history):
         response = self.backend.generate_response(user_prompt, chat_history=chat_history)
         return response
 
@@ -21,10 +21,19 @@ class StreamlitFrontend:
             placeholder="Enter your prompt:"    # placeholder text
         )
 
-        button = st.button("Ask")
-        button2 = st.button("Ingest")
-        button3 = st.button("Test response")
-        button4 = st.button("Clean")
+        row1_col1, row1_col2, row1_col3, = st.columns([1, 1, 3])  # 3rd takes 3x space
+        with row1_col1:
+            button2 = st.button("Ingest")
+
+        with row1_col2:
+            button3 = st.button("Test response")
+
+        with row1_col3:
+            button4 = st.button("Clean")
+
+        row2_col1, row2_col2 = st.columns([2, 2])
+        with row2_col1:
+            button=st.button("Ask")
 
         if 'prompt_history' not in st.session_state:
             st.session_state['prompt_history'] = []
@@ -38,7 +47,7 @@ class StreamlitFrontend:
         if 'processing' not in st.session_state:
             st.session_state['processing'] = False
 
-        # Handle button2
+        # Handle button2, ingest data
         if button2:
             with st.spinner("Ingesting data..."):
                 try:
@@ -50,12 +59,11 @@ class StreamlitFrontend:
                 except Exception as e:
                     st.error(f"Error during ingestion: {e}")
 
-        # Handle button3
-        if button3:
+        # Handle button3, test response
+        if button3 and prompt:
             with st.spinner("Testing response..."):
                 try:
-                    test_prompt = "What is the capital of France?"
-                    test_response = self._generate_llm_response(test_prompt)
+                    test_response = self._generate_llm_response(prompt, chat_history=st.session_state['chat_history'])
 
                     st.success(f"Test complete: {test_response}")
                     st.balloons()
@@ -63,7 +71,7 @@ class StreamlitFrontend:
                 except Exception as e:
                     st.error(f"Error during test: {e}")
 
-        # Handle button4
+        # Handle button4, clean up data
         if button4:
             with st.spinner("Cleaning up data..."):
                 try:
@@ -87,7 +95,7 @@ class StreamlitFrontend:
                     st.session_state['answer_history'].append(generated_response)
 
                     st.session_state['chat_history'].append(('human', prompt))
-                    st.session_state['chat_history'].append(('ai', generated_response))
+                    st.session_state['chat_history'].append(('ai', generated_response['result']))
 
                     st.success("Done!")
                     st.balloons()
@@ -110,7 +118,7 @@ class StreamlitFrontend:
                     st.session_state['answer_history'].append(generated_response)
 
                     st.session_state['chat_history'].append(('human', prompt))
-                    st.session_state['chat_history'].append(('ai', generated_response))
+                    st.session_state['chat_history'].append(('ai', generated_response['result']))
 
                     st.success("Done!")
                     st.balloons()

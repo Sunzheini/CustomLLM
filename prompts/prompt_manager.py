@@ -20,13 +20,18 @@ class PromptManager:
     """
     def __init__(self):
         self.__prompt_library = {
-            "langchain-ai/retrieval-qa-chat": {
+                "langchain-ai/retrieval-qa-chat": {
                 "type": "hub",
                 "link": "https://smith.langchain.com/hub/langchain-ai/retrieval-qa-chat?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
             },
             "hwchase17/react": {
                 "type": "hub",
                 "link": "https://smith.langchain.com/hub/hwchase17/react?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
+            },
+
+            "langchain-ai/chat-langchain-rephrase": {
+                "type": "hub",
+                "link": "https://smith.langchain.com/hub/langchain-ai/chat-langchain-rephrase?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
             },
 
             "custom_prompt1": {
