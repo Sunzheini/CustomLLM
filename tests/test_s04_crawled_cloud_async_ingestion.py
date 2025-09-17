@@ -9,7 +9,7 @@ import pytest
 from dotenv import load_dotenv
 from langchain_core.documents import Document
 
-from tests.conftest import split_document, run_crawl, split_document_list
+from tests.conftest import run_crawl, split_document_list
 
 
 BASE_DIR = Path(__file__).resolve().parent
