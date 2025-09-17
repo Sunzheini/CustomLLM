@@ -1,4 +1,6 @@
+from backend.example_backend import ExampleBackend
 from frontend.example_streamlit_frontend import StreamlitFrontend
 
 
-frontend = StreamlitFrontend()  # runs in a loop
+backend = ExampleBackend()
+frontend = StreamlitFrontend(backend)  # runs in a loop
