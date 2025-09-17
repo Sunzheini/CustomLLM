@@ -4,6 +4,8 @@ Run main.py
 Hugging Face = The models (the "what")
 LangChain = The orchestration (the "how")
 LangSmith = The monitoring (the "why")
+LangGraph = orchestration + monitoring
+ToDo: use CopilotKit for React
 
 # Ollama
 cmd: `ollama`
