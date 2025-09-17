@@ -77,7 +77,8 @@ class ChainsManager:
 
         Args:
             llm: The language model to use
-            prompt: The prompt template for document processing
+            answer_prompt: The prompt template for generating answers
+            history_prompt: The prompt template for incorporating chat history
             vectorstore: The vector store for retrieval
 
         Returns:

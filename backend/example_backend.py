@@ -240,6 +240,3 @@ class ExampleBackend:
         }
 
         return new_result
-
-    # What is LangChain?
-    # What did i just ask you?
