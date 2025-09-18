@@ -12,8 +12,17 @@ from support.callback_handler import CustomCallbackHandler
 
 def create_a_reasoning_and_tool_graph(tools, llm) -> CompiledStateGraph:
     """Create a LangGraph with reasoning and tool nodes."""
-
     system_message = """You are a helpful assistant that can use tools to answer questions."""
+
+    # ----------------------------------------------------------------------------------
+    # State definition
+    # ----------------------------------------------------------------------------------
+    class MyState(TypedDict):
+        messages: Annotated[list[BaseMessage], add_messages]
+
+    agent_reason = "agent_reason"
+    act = "act"
+    last = -1
 
     # ----------------------------------------------------------------------------------
     # Reasoning node
@@ -35,16 +44,6 @@ def create_a_reasoning_and_tool_graph(tools, llm) -> CompiledStateGraph:
     tool_node = ToolNode(tools)
 
     # ----------------------------------------------------------------------------------
-    # State definition
-    # ----------------------------------------------------------------------------------
-    class MyState(TypedDict):
-        messages: Annotated[list[BaseMessage], add_messages]
-
-    agent_reason = "agent_reason"
-    act = "act"
-    last = -1
-
-    # ----------------------------------------------------------------------------------
     # Conditional logic for graph edges
     # ----------------------------------------------------------------------------------
     def should_continue(state: MyState) -> str:
@@ -60,8 +59,9 @@ def create_a_reasoning_and_tool_graph(tools, llm) -> CompiledStateGraph:
     flow = StateGraph(MyState)
 
     flow.add_node(agent_reason, run_agent_reasoning)
-    flow.set_entry_point(agent_reason)
     flow.add_node(act, tool_node)
+    flow.set_entry_point(agent_reason)  # the first node to be executed
+
     flow.add_conditional_edges(
         agent_reason,
         should_continue,
