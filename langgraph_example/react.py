@@ -35,4 +35,3 @@ function calling LLM with tools: the vendor is responsible
 to call the tools and handles the parsing of the response
 """
 llm = ChatOpenAI(model='gpt-4.1-mini', temperature=0).bind_tools(tools)     # function calling
-
