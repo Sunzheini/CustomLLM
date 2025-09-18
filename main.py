@@ -10,8 +10,9 @@ from streamlit_example.example_streamlit_frontend import StreamlitFrontend
 # backend = ExampleBackend()
 # frontend = StreamlitFrontend(backend)  # runs in a loop
 
+
 # ---------------------------------------------------------------------------
-# LangGraph example
+# LangGraph example: Reflexion architecture
 # ---------------------------------------------------------------------------
 from langchain_core.prompts import MessagesPlaceholder
 from typing import Annotated, TypedDict
@@ -114,6 +115,15 @@ def run_it():
 
     generation_prompt = managers['prompt_manager'].create_template_from_messages(generation_prompt_messages)
     reflection_prompt = managers['prompt_manager'].create_template_from_messages(reflection_prompt_messages)
+    query = HumanMessage(content="""Make this tweet better:"
+                                        @LangChainAI
+                - newly Tool Calling feature is seriously underrated.
+
+                After a long wait, it's here- making the implementation of agents across different models with function calling - super easy.
+
+                Made a video covering their newest blog post
+
+                                    """)
 
     # 4
     llm = managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
@@ -124,19 +134,8 @@ def run_it():
 
     graph = create__graph([generation_chain, reflection_chain])
 
-    inputs = HumanMessage(content="""Make this tweet better:"
-                                    @LangChainAI
-            - newly Tool Calling feature is seriously underrated.
-            
-            After a long wait, it's here- making the implementation of agents across different models with function calling - super easy.
-            
-            Made a video covering their newest blog post
-            
-                                """)
-
     # 6
-    # response = graph.invoke(inputs)
-    response = graph.invoke({"messages": [inputs]})
+    response = graph.invoke({"messages": [query]})
 
     print(response['messages'])
     print(response['messages'][-1].content)
