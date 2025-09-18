@@ -103,3 +103,4 @@ class StreamlitFrontend:
 
     # What is LangChain?
     # What did i just ask you?
+    # How many letters are in your first reply to me?
