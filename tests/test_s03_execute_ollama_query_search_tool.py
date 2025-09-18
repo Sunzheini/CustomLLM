@@ -19,7 +19,7 @@ tavily_api_key = os.getenv('TAVILY_API_KEY')
 
 def test_08_execute_ollama_query_search_tool(base_dir, managers):
     # ----------------------------------------------------------------------------------
-    # Act
+    # Arrange & Act
     # ----------------------------------------------------------------------------------
     # 1
     tools = [TavilySearchResults(api_key=tavily_api_key, max_results=3)]

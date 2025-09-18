@@ -21,9 +21,20 @@ class ToolsManager:
     def __init__(self):
         self.tools = {}
 
+    @staticmethod
     @tool
     def get_text_length(text: Annotated[str, "The text to measure"]) -> int:
         """Returns the length of the input text."""
         print(f"get_text_length enter with {text=}")
         text = text.strip("'\n").strip('"')  # clean up the input text from extra quotes and newlines
         return len(text)
+
+    @staticmethod
+    @tool
+    def triple(num: float) -> float:
+        """
+        Simple function to triple a number
+        :param num: the number to triple
+        :return: the tripled number as float
+        """
+        return float(num * 3)
