@@ -69,6 +69,9 @@ if __name__ == "__main__":
         "messages": [HumanMessage(content="What is the weather in Tokyo? After fetching the weather, triple the temperature in Celsius.")]
     })
     pprint(result)
+    print(80 * '-')
+    print(result['messages'][-1].content)
+    print(80 * '-')
 
     for msg in result["messages"]:
         if msg.type == "tool":
