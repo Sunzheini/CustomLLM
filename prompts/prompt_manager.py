@@ -5,8 +5,7 @@ from typing import List
 from dotenv import load_dotenv
 from langchain import hub
 
-from langchain_core.prompts import BasePromptTemplate, PromptTemplate
-
+from langchain_core.prompts import BasePromptTemplate, PromptTemplate, ChatPromptTemplate
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -44,6 +43,14 @@ class PromptManager:
             },
         }
 
+    @staticmethod
+    def __detect_input_variables(template: str) -> List[str]:
+        """Simple method to detect input variables in template string"""
+        import re
+        # This is a simple regex to find {variable} patterns
+        variables = re.findall(r'\{(\w+)\}', template)
+        return list(set(variables))  # Remove duplicates
+
     def get_prompt_template(self, prompt_name: str) -> BasePromptTemplate:
         """
         Create a prompt based on the input.
@@ -64,7 +71,7 @@ class PromptManager:
                     template_content = f.read().strip()
                 return PromptTemplate(
                     template=template_content,
-                    input_variables=self._detect_input_variables(template_content)
+                    input_variables=self.__detect_input_variables(template_content)
                 )
 
             except FileNotFoundError:
@@ -94,9 +101,6 @@ class PromptManager:
         return template.partial(**kwargs)
 
     @staticmethod
-    def _detect_input_variables(template: str) -> List[str]:
-        """Simple method to detect input variables in template string"""
-        import re
-        # This is a simple regex to find {variable} patterns
-        variables = re.findall(r'\{(\w+)\}', template)
-        return list(set(variables))  # Remove duplicates
+    def create_template_from_messages(messages) -> ChatPromptTemplate:
+        template = ChatPromptTemplate.from_messages(messages)
+        return template
