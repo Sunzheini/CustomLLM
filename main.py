@@ -63,6 +63,7 @@ def create__graph(chains) -> CompiledStateGraph:
     def should_continue(state: MyState) -> str:
         if len(state["messages"]) > max_message_length:
             return END
+
         return reflect
 
     # ----------------------------------------------------------------------------------
