@@ -31,3 +31,10 @@ Create Index:
     e.g. text-embedding-3-small (matching the embeddings in the code), 1536, serverless, aws, default region
 Create a var INDEX_NAME=custom-index
 
+# MCP
+run `npx @modelcontextprotocol/inspector` -> browser opens
+`cd D:\Study\Projects\Github\mcpdoc`
+`.venv\Scripts\activate`
+`uvx --from mcpdoc mcpdoc --urls "LangGraph:https://langchain-ai.github.io/langgraph/llms.txt" "LangChain:https://python.langchain.com/llms.txt" --transport sse --port 8082 --host localhost`
+server starts on open http://localhost:8082/
+In the MCP Inspector, select transport: SSE, URL: http://localhost:8082/sse, click Connect
