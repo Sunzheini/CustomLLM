@@ -1,9 +1,15 @@
 # ---------------------------------------------------------------------------
 # Streamlit example (use the streamlit_runner in the configurations to run)
 # ---------------------------------------------------------------------------
-from langchain_core.runnables import Runnable
+import os
+from pathlib import Path
 
-from models.schemas import AnswerQuestion
+from dotenv import load_dotenv
+from firecrawl.v2.methods.aio.search import search
+from langchain_core.runnables import Runnable, RunnableLambda
+from langgraph.prebuilt import ToolNode
+
+from models.schemas import AnswerQuestion, ReviseAnswer
 from streamlit_example.example_backend import ExampleBackend
 from streamlit_example.example_streamlit_frontend import StreamlitFrontend
 
@@ -20,32 +26,43 @@ import datetime
 from langchain_core.prompts import MessagesPlaceholder
 from typing import Annotated, TypedDict
 
-from langchain_core.messages import HumanMessage, BaseMessage
+from langchain_core.messages import HumanMessage, BaseMessage, ToolMessage
 from langchain_tavily import TavilySearch
+from langchain_core.tools import StructuredTool
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
 from langchain_core.output_parsers.openai_tools import JsonOutputToolsParser, PydanticToolsParser
+from langgraph.graph import StateGraph, MessagesState, END, MessageGraph
 
 from support.callback_handler import CustomCallbackHandler
 from tests.conftest import get_managers
 
 
+BASE_DIR = Path(__file__).resolve().parent
+
+if os.path.exists(os.path.join(BASE_DIR, '.env')):
+    load_dotenv()
+
+tavily_api_key = os.getenv('TAVILY_API_KEY')
+
+
 managers = get_managers()
 
 
-def create__graph(chains) -> CompiledStateGraph:
+def create_graph(first_responder_chain, execute_tools, reviser_chain) -> CompiledStateGraph:
     # generation_chain, reflection_chain = chains
 
     # ----------------------------------------------------------------------------------
     # State definition
     # ----------------------------------------------------------------------------------
-    # class MyState(TypedDict):
-    #     messages: Annotated[list[BaseMessage], add_messages]
-    #
-    # reflect = "reflect"
-    # generate = "generate"
-    # max_message_length = 6
+    class MyState(TypedDict):
+        messages: Annotated[list[BaseMessage], add_messages]
+
+    draft_key = "draft"
+    execute_tools_key = "execute_tools"
+    revise_key = "revise"
+    max_iterations = 2
 
     # ----------------------------------------------------------------------------------
     # Generation node
@@ -64,36 +81,55 @@ def create__graph(chains) -> CompiledStateGraph:
     # ----------------------------------------------------------------------------------
     # Conditional logic for graph edges
     # ----------------------------------------------------------------------------------
-    # def should_continue(state: MyState) -> str:
-    #     if len(state["messages"]) > max_message_length:
-    #         return END
-    #
-    #     return reflect
+    def should_continue(state: MyState) -> str:
+        count_tool_visits = sum(isinstance(item, ToolMessage) for item in state['messages'])
+        num_iterations = count_tool_visits
+        if num_iterations >= max_iterations:
+            return END
+
+        return execute_tools_key
 
     # ----------------------------------------------------------------------------------
     # Build graph
     # ----------------------------------------------------------------------------------
-    # flow = StateGraph(state_schema=MyState)
-    #
-    # flow.add_node(generate, run_agent_generation)
-    # flow.add_node(reflect, run_agent_reflection)
-    # flow.set_entry_point(generate)
-    #
-    # flow.add_conditional_edges(
-    #     generate,
-    #     should_continue,
-    #     {END: END, reflect: reflect}
-    # )
-    # flow.add_edge(reflect, generate)
-    #
-    # compiled_graph = flow.compile()
+    flow = StateGraph(MyState)
+
+    flow.add_node(draft_key, first_responder_chain)
+    flow.add_node(execute_tools_key, execute_tools)
+    flow.add_node(revise_key, reviser_chain)
+    flow.set_entry_point(draft_key)
+
+    flow.add_edge(draft_key, execute_tools_key)
+    flow.add_edge(execute_tools_key, revise_key)
+    flow.add_conditional_edges(
+        revise_key,
+        should_continue,
+        {END: END, execute_tools_key: execute_tools_key}
+    )
+
+    compiled_graph = flow.compile()
     # compiled_graph.get_graph().draw_mermaid_png(output_file_path='flow.png')
-    #
-    # return compiled_graph
-    pass
+
+    return compiled_graph
 
 
 def run_it():
+    # 1
+    tavily_tool = TavilySearch(api_key=tavily_api_key, max_results=5)
+
+    # tools = [TavilySearch(api_key=tavily_api_key, max_results=5)]
+
+    def run_queries(search_queries: list[str], **kwargs):
+        """Run the generated queries"""
+        return tavily_tool.batch([{"query": q} for q in search_queries])    # batch runs them in parallel
+
+    execute_tools = ToolNode(
+        [
+            StructuredTool.from_function(run_queries, name=AnswerQuestion.__name__),
+            StructuredTool.from_function(run_queries, name=ReviseAnswer.__name__),
+        ]
+    )
+
     # 3
     system_message_actor = """You are expert researcher.
     Current time: {time}
@@ -102,9 +138,14 @@ def run_it():
     2. Reflect and critique your answer. Be severe to maximize improvement.
     3. Recomment search queries to research information and improve your answer."""
 
-    # system_message_reviser = """You are a viral twitter influencer grading a tweet. Generate critique and recommendations for the user's tweet.
-    # Always provide detailed recommendations, including requests for length, virality, style, etc.
-    # """
+    system_message_reviser = """Revise your previous answer using the new information.
+        - You should use the previous critique to add important information to your answer.
+            - You MUST include numerical citations in your revised answer to ensure it can be verified.
+            - Add a "References" section to the bottom of your answer (which does not count towards the word limit. In the form of:
+                - [1] https://example.com
+                - [2] https://example.com
+        - You should use the previous critique to remove superfluous information from your answer and make SURE it is not more than 250 words.
+    """
 
     actor_prompt_messages = [
         (
@@ -147,9 +188,23 @@ def run_it():
         actor_prompt_prefilled,
         first_instruction="Provide a detailed ~250 word answer.",
     )
-    first_responder_chain = first_responder_prompt_template | llm.bind_tools(
-        tools=[AnswerQuestion],
-        tool_choice="AnswerQuestion",
+    first_responder_chain = (
+            RunnableLambda(lambda state: {"messages": state["messages"]})
+            | first_responder_prompt_template
+            | llm.bind_tools(tools=[AnswerQuestion], tool_choice="AnswerQuestion")
+            | RunnableLambda(lambda x: {"messages": [x]})
+    )
+
+    reviser_chain_prompt_template = managers['prompt_manager'].prefill_existing_template(
+        actor_prompt_prefilled,
+        first_instruction=system_message_reviser,
+    )
+
+    reviser_chain = (
+            RunnableLambda(lambda state: {"messages": state["messages"]})
+            | reviser_chain_prompt_template
+            | llm.bind_tools(tools=[ReviseAnswer], tool_choice="ReviseAnswer")
+            | RunnableLambda(lambda x: {"messages": [x]})
     )
 
     # response = graph.invoke({"messages": [query]})
@@ -161,11 +216,32 @@ def run_it():
         | pydantic_parser
     )
 
-    response = new_chain.invoke({"messages": [query]})
+    graph = create_graph(
+        first_responder_chain, execute_tools, reviser_chain
+    )
 
-    # print(response['messages'])
-    # print(response['messages'][-1].content)
-    print(response[0].answer)
+    response = graph.invoke({"messages": [query]})
+
+    print("\n" + "=" * 60)
+    print("FINAL REVISED ANSWER:")
+    print("=" * 60)
+
+    # Get the last message
+    last_message = response['messages'][-1]
+
+    # Check if it has tool calls
+    if last_message.tool_calls:
+        # Assuming the first tool call is ReviseAnswer
+        tool_call = last_message.tool_calls[0]
+        if tool_call['name'] == 'ReviseAnswer':
+            # tool_call['args'] is already a dictionary, no need to parse JSON
+            args = tool_call['args']
+            print(args['answer'])
+            print("\nReferences:")
+            for i, ref in enumerate(args.get('references', []), 1):
+                print(f"[{i}] {ref}")
+    else:
+        print(last_message.content)
 
 
 run_it()
