@@ -84,8 +84,6 @@ def test_13_run_graph_with_reasoning_node_and_tool_node(base_dir, managers):
     tools = [TavilySearch(max_results=1), managers['tools_manager'].triple]
 
     # 3
-    # query = [HumanMessage(content="What is 5 tripled?")]
-    # query = [HumanMessage(content="Who is the current president of the United States?")]
     query = [HumanMessage(content="What is the weather in Tokyo? After fetching the weather, triple the temperature in Celsius.")]
 
     # 4

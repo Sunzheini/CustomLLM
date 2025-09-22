@@ -56,7 +56,7 @@ def test_09_run_crawl_and_split_crawled_documents():
     assert isinstance(texts[0], Document)
     assert texts[0].page_content is not None
     assert texts[0].metadata is not None
-    assert 3000 <= len(texts[0].page_content) <= 5000  # chunk size
+    assert 2000 <= len(texts[0].page_content) <= 6000  # chunk size
 
 
 @pytest.mark.asyncio

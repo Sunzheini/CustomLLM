@@ -97,9 +97,6 @@ def run_it():
     Always provide detailed recommendations, including requests for length, virality, style, etc.
     """
 
-    # 1
-    tools = [TavilySearch(max_results=1), managers['tools_manager'].triple]
-
     # 3
     generation_prompt_messages = [
         (
