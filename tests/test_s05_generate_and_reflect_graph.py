@@ -11,8 +11,6 @@ from support.callback_handler import CustomCallbackHandler
 
 def create_a_generate_and_reflect_graph(generation_chain, reflection_chain) -> CompiledStateGraph:
     """Create a LangGraph flow with generate and reflect nodes."""
-    # system_message = """You are a helpful assistant that can use tools to answer questions."""
-
     # ----------------------------------------------------------------------------------
     # State definition
     # ----------------------------------------------------------------------------------
@@ -68,7 +66,7 @@ def create_a_generate_and_reflect_graph(generation_chain, reflection_chain) -> C
     return compiled_graph
 
 
-def test_13_run_graph_with_reasoning_node_and_tool_node(base_dir, managers):
+def test_14_run_graph_with_reasoning_node_and_tool_node(base_dir, managers):
     """Test LangGraph flow with a generation node followed by a reflection node."""
     # ----------------------------------------------------------------------------------
     # Arrange & Act
