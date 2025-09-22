@@ -10,10 +10,8 @@ from langgraph.prebuilt import ToolNode
 from support.callback_handler import CustomCallbackHandler
 
 
-def create_a_reasoning_and_tool_graph(tools, llm) -> CompiledStateGraph:
+def create_a_reasoning_and_tool_graph(tools, llm, system_message) -> CompiledStateGraph:
     """Create a LangGraph with reasoning and tool nodes."""
-    system_message = """You are a helpful assistant that can use tools to answer questions."""
-
     # ----------------------------------------------------------------------------------
     # State definition
     # ----------------------------------------------------------------------------------
@@ -84,6 +82,7 @@ def test_13_run_graph_with_reasoning_node_and_tool_node(base_dir, managers):
     tools = [TavilySearch(max_results=1), managers['tools_manager'].triple]
 
     # 3
+    system_message = """You are a helpful assistant that can use tools to answer questions."""
     query = [HumanMessage(content="What is the weather in Tokyo? After fetching the weather, triple the temperature in Celsius.")]
 
     # 4
@@ -91,7 +90,7 @@ def test_13_run_graph_with_reasoning_node_and_tool_node(base_dir, managers):
            .bind_tools(tools))      # enabled function calling: LLM decides when to call a tool
 
     # 5
-    graph = create_a_reasoning_and_tool_graph(tools, llm)
+    graph = create_a_reasoning_and_tool_graph(tools, llm, system_message)
 
     # 6
     response = graph.invoke({"messages": query})
