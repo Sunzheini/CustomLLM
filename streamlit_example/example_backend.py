@@ -2,6 +2,8 @@ import asyncio
 import os
 from pathlib import Path
 from typing import List, Dict, Any
+import subprocess
+import sys
 
 from dotenv import load_dotenv
 from langchain_core.documents import Document
@@ -245,3 +247,28 @@ class ExampleBackend:
         }
 
         return new_result
+
+    def run_tests(self, test_pattern=None):
+        """Run tests programmatically"""
+        try:
+            cmd = [sys.executable, "-m", "pytest", "-v", "--tb=short"]
+            if test_pattern:
+                cmd.extend(["-k", test_pattern])
+            else:
+                cmd.append("tests/")
+
+            result = subprocess.run(cmd, capture_output=True, text=True, cwd=".")
+
+            return {
+                "success": result.returncode == 0,
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+                "returncode": result.returncode
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "stdout": "",
+                "stderr": ""
+            }
