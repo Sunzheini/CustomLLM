@@ -7,6 +7,12 @@ LangSmith = The monitoring (the "why")
 LangGraph = orchestration + monitoring
 ToDo: use CopilotKit for React
 
+# Streamlit runner
+Script: D:/Study/Projects/Github/CustomLLM/.venv/Scripts/streamlit.exe
+Parameters: run main.py
+Working directory: D:/Study/Projects/Github/CustomLLM
+Path to env files: D:/Study/Projects/Github/CustomLLM/.env
+
 # Ollama
 cmd: `ollama`
 user: Sunzheini, email: daniel_zorov@abv.bg, pass: Maimun06
