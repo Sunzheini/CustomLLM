@@ -38,6 +38,7 @@ Create Index:
 Create a var INDEX_NAME=custom-index
 
 # MCP
+example: 
 run `npx @modelcontextprotocol/inspector` -> browser opens
 `cd D:\Study\Projects\Github\mcpdoc`
 `.venv\Scripts\activate`
@@ -45,4 +46,8 @@ run `npx @modelcontextprotocol/inspector` -> browser opens
 server starts on open http://localhost:8082/
 In the MCP Inspector, select transport: SSE, URL: http://localhost:8082/sse, click Connect
 
-
+run a local mcp server to use it inside your app:
+1. clone `https://github.com/modelcontextprotocol/quickstart-resources` inside `D:\Study\Projects\Github\mcp_servers
+2. have npm and `npm install -g typescript`
+3. `cd D:\Study\Projects\Github\mcp_servers\quickstart-resources\weather-server-typescript\` and run `npm install`
+4. 
