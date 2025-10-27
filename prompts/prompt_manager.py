@@ -19,15 +19,19 @@ class PromptManager:
     """
     def __init__(self):
         self.__prompt_library = {
+            # For direct Q&A with your PDF documents
                 "langchain-ai/retrieval-qa-chat": {
                 "type": "hub",
                 "link": "https://smith.langchain.com/hub/langchain-ai/retrieval-qa-chat?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
             },
+
+            # For complex analytical tasks requiring reasoning
             "hwchase17/react": {
                 "type": "hub",
                 "link": "https://smith.langchain.com/hub/hwchase17/react?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
             },
 
+            # For conversational interfaces with memory
             "langchain-ai/chat-langchain-rephrase": {
                 "type": "hub",
                 "link": "https://smith.langchain.com/hub/langchain-ai/chat-langchain-rephrase?organizationId=4d2f1613-26c5-4bb8-b70c-40b7f844b650"
