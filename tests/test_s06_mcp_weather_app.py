@@ -6,6 +6,7 @@ import subprocess
 import threading
 import time
 import json
+
 import requests
 import pytest
 from flask import Flask, jsonify
@@ -241,7 +242,6 @@ class MCPWeatherBridge:
 @pytest.fixture(scope="module")
 def weather_server():
     """Fixture to start the MCP weather server for tests."""
-    # Create Flask app
     app = Flask(__name__)
 
     # Initialize the bridge
@@ -282,7 +282,6 @@ def weather_server():
         return jsonify({'status': status, 'mcp_server': status, 'available_tools': tools})
 
     # Start Flask app in a separate thread
-    import threading
     def run_app():
         app.run(port=5001, debug=False, use_reloader=False)
 
@@ -328,7 +327,6 @@ def test_weather_api(weather_server):
             if response.status_code == 200:
                 alert_data = response.json()
                 print(f"Alerts response received for {state}")
-                # You can add more specific assertions here
                 assert 'alerts' in alert_data
             else:
                 print(f"Error: {response.text}")
