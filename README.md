@@ -44,3 +44,5 @@ run `npx @modelcontextprotocol/inspector` -> browser opens
 `uvx --from mcpdoc mcpdoc --urls "LangGraph:https://langchain-ai.github.io/langgraph/llms.txt" "LangChain:https://python.langchain.com/llms.txt" --transport sse --port 8082 --host localhost`
 server starts on open http://localhost:8082/
 In the MCP Inspector, select transport: SSE, URL: http://localhost:8082/sse, click Connect
+
+
