@@ -1,5 +1,11 @@
 Run main.py
 
+# If using the service for AI: 
+pip install "file:///D:/Study/Projects/Github/AegisAI/shared-lib"
+pip install --force-reinstall "file:///D:/Study/Projects/Github/AegisAI/shared-lib"
+
+# If not just start the streamlit_runner configuration below
+
 # General
 Hugging Face = The models (the "what")
 LangChain = The orchestration (the "how")
@@ -50,4 +56,3 @@ run a local mcp server to use it inside your app:
 1. clone `https://github.com/modelcontextprotocol/quickstart-resources` inside `D:\Study\Projects\Github\mcp_servers
 2. have npm and `npm install -g typescript`
 3. `cd D:\Study\Projects\Github\mcp_servers\quickstart-resources\weather-server-typescript\` and run `npm install`
-4. 
