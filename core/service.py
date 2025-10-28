@@ -15,6 +15,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
+from core.text_summarizer import TextSummarizer
+
 load_dotenv()
 
 from shared_lib.contracts.job_schemas import WorkflowGraphState
@@ -118,6 +120,7 @@ class AIService(INeedRedisManagerInterface):
         # -------------------------------------------------------------------------------
         # The real AI processing!
         # -------------------------------------------------------------------------------
+        TextSummarizer.do_something()
 
         # -------------------------------------------------------------------------------
         if errors:
