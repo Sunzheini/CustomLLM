@@ -5,8 +5,9 @@ from streamlit_example.example_backend import ExampleBackend
 from streamlit_example.example_streamlit_frontend import StreamlitFrontend
 
 
-# run with the streamlit runner configuration
+# Option 1. run with the streamlit runner configuration
 backend = ExampleBackend()
 frontend = StreamlitFrontend(backend)  # runs in a loop
 
-# run a service for AegisAI
+# Option 2. run a service for AegisAI: use the uvicorn.exe configuration to run
+

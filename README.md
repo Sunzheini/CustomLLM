@@ -3,8 +3,9 @@ Run main.py
 # If using the service for AI: 
 pip install "file:///D:/Study/Projects/Github/AegisAI/shared-lib"
 pip install --force-reinstall "file:///D:/Study/Projects/Github/AegisAI/shared-lib"
+run with uvicorn.exe configuration
 
-# If not just start the streamlit_runner configuration below
+# If not just start the streamlit_runner configuration
 
 # General
 Hugging Face = The models (the "what")
