@@ -1,15 +1,10 @@
-import os
-from pathlib import Path
 from typing import Annotated
 
 from dotenv import load_dotenv
 from langchain.agents import tool
 
 
-BASE_DIR = Path(__file__).resolve().parent
-
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
+load_dotenv()
 
 
 class ToolsManager:

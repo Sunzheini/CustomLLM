@@ -1,6 +1,5 @@
 import os
 import datetime
-from pathlib import Path
 from typing import Annotated, TypedDict
 
 from dotenv import load_dotenv
@@ -18,10 +17,8 @@ from models.schemas import AnswerQuestion, ReviseAnswer
 from support.callback_handler import CustomCallbackHandler
 
 
-BASE_DIR = Path(__file__).resolve().parent
+load_dotenv()
 
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
 
 tavily_api_key = os.getenv('TAVILY_API_KEY')
 

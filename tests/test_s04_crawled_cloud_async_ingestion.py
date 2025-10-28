@@ -3,7 +3,6 @@ import ssl
 import asyncio
 import certifi
 from typing import List
-from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
@@ -12,10 +11,8 @@ from langchain_core.documents import Document
 from tests.conftest import run_crawl, split_document_list
 
 
-BASE_DIR = Path(__file__).resolve().parent
+load_dotenv()
 
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
 
 tavily_api_key = os.getenv('TAVILY_API_KEY')
 pinecone_api_key = os.getenv('PINECONE_API_KEY')

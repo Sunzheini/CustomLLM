@@ -1,6 +1,5 @@
 import os
 import json
-from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain_community.tools import TavilySearchResults
@@ -9,10 +8,8 @@ from langchain_core.tools import render_text_description
 from support.callback_handler import CustomCallbackHandler
 
 
-BASE_DIR = Path(__file__).resolve().parent
+load_dotenv()
 
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
 
 tavily_api_key = os.getenv('TAVILY_API_KEY')
 

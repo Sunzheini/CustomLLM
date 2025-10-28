@@ -18,10 +18,7 @@ from chains.chains_manager import ChainsManager
 from communication.communications_manager import CommunicationsManager
 
 
-BASE_DIR = Path(__file__).resolve().parent
-
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
+load_dotenv()
 
 pinecone_api_key = os.getenv('PINECONE_API_KEY')
 index_name = os.getenv('INDEX_NAME')

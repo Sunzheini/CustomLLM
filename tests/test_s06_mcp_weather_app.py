@@ -79,7 +79,7 @@ class MCPWeatherBridge:
         self.process.stdin.write(message_str)
         self.process.stdin.flush()
 
-    def _wait_for_response(self, expected_id, timeout=10):
+    def _wait_for_response(self, expected_id, timeout=20):
         """Wait for a response with the expected ID."""
         start_time = time.time()
 

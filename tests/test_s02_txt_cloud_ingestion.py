@@ -1,17 +1,13 @@
 import os
-from pathlib import Path
 
 import pytest
-from pinecone import Pinecone
 from dotenv import load_dotenv
 
 from tests.conftest import split_document
 
 
-BASE_DIR = Path(__file__).resolve().parent
+load_dotenv()
 
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
 
 pinecone_api_key = os.getenv('PINECONE_API_KEY')
 index_name = os.getenv('INDEX_NAME')

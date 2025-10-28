@@ -5,7 +5,6 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import BasePromptTemplate
 from langchain_core.runnables import Runnable
 from langchain_core.vectorstores import VectorStore
-from langchain.chains.base import Chain
 from langchain.agents import AgentExecutor
 from langchain.agents.react.agent import create_react_agent
 

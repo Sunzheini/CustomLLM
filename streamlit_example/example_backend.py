@@ -13,10 +13,7 @@ from support.callback_handler import CustomCallbackHandler
 from tests.conftest import run_crawl, split_document_list, get_managers
 
 
-BASE_DIR = Path(__file__).resolve().parent
-
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
-    load_dotenv()
+load_dotenv()
 
 tavily_api_key = os.getenv('TAVILY_API_KEY')
 pinecone_api_key = os.getenv('PINECONE_API_KEY')
