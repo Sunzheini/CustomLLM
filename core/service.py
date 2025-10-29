@@ -145,7 +145,7 @@ class AIService(INeedRedisManagerInterface):
             index_name=pinecone_index_name, pinecone_api_key=pinecone_api_key
         ))
 
-    def _retrieve_from_txt_in_cloud(self):
+    def _retrieve_from_txt_in_cloud(self, query):
         embeddings = self.managers['embeddings_manager'].open_ai_embeddings()
 
         # 2
@@ -157,7 +157,6 @@ class AIService(INeedRedisManagerInterface):
         ))
 
         # 3
-        query = "What microcontrollers are mentioned?"
         retrieval_qa_chat_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
 
         # 4
@@ -169,7 +168,6 @@ class AIService(INeedRedisManagerInterface):
         # 6
         response = chain.invoke(input={"input": query})
         return f"\nAnswer: {response['answer']}"
-
     # endregion
 
     async def _process_ai_worker(self, state: WorkflowGraphState) -> WorkflowGraphState:
@@ -268,6 +266,7 @@ class AIService(INeedRedisManagerInterface):
         # The real AI processing!
         # -------------------------------------------------------------------------------
         ai_results = {}
+        query = "What microcontrollers are mentioned?"
 
         try:
             texts = self._split_txt_into_chunks(state)
@@ -276,7 +275,7 @@ class AIService(INeedRedisManagerInterface):
                 errors.append("No text chunks available for AI processing")
             else:
                 self._ingest_txt_into_cloud_vector_store(texts)
-                summary_response = self._retrieve_from_txt_in_cloud()
+                summary_response = self._retrieve_from_txt_in_cloud(query)
 
                 # Calculate actual word count from the AI response
                 actual_word_count = len(summary_response.split())
