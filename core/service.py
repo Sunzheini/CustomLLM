@@ -278,14 +278,17 @@ class AIService(INeedRedisManagerInterface):
                 self._ingest_txt_into_cloud_vector_store(texts)
                 summary_response = self._retrieve_from_txt_in_cloud()
 
+                # Calculate actual word count from the AI response
+                actual_word_count = len(summary_response.split())
+
                 # Compile all AI results
                 # Keep the same structure as before but with real AI content
                 ai_results.update({
                     "document_summary": {
                         "summary": summary_response.replace('\nAnswer: ', '').strip(),
-                        "word_count": len(summary_response.split()),
+                        "word_count": actual_word_count,
                         "content_type": "ai_analysis",
-                        "readability_score": 85  # You can calculate this
+                        "readability_score": min(100, max(50, 100 - (actual_word_count // 10)))
                     },
                     "sentiment_analysis": {
                         "sentiment": "neutral",  # You can analyze this from the response
