@@ -131,7 +131,7 @@ class AIService(INeedRedisManagerInterface):
         Test ingesting txt content into a vector store and querying it.
         This is an integration test that requires OpenAI API access.
         """
-        texts = texts[:3]
+        # texts = texts[:3]
 
         # 0
         embeddings = self.managers['embeddings_manager'].open_ai_embeddings()
