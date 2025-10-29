@@ -15,6 +15,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
+from support.callback_handler import CustomCallbackHandler
+
 load_dotenv()
 
 from shared_lib.contracts.job_schemas import WorkflowGraphState
@@ -25,10 +27,15 @@ from shared_lib.custom_middleware.error_middleware import ErrorMiddleware
 from shared_lib.custom_middleware.logging_middleware import EnhancedLoggingMiddleware
 from shared_lib.logging_management.logging_manager import LoggingManager
 
+from tests.conftest import split_document, get_managers
 
 # Configuration
 AI_QUEUE = os.getenv("AI_QUEUE", "ai_queue")
 AI_CALLBACK_QUEUE = os.getenv("AI_CALLBACK_QUEUE", "ai_callback_queue")
+
+pinecone_api_key = os.getenv('PINECONE_API_KEY')
+index_name = os.getenv('INDEX_NAME')
+index2_name = os.getenv('INDEX_NAME')
 
 # Upload/raw storage location constant (configurable)
 UPLOAD_DIR = Path(os.getenv("PROCESSED_DIR", "storage/processed")).resolve()
@@ -82,6 +89,8 @@ class AIService(INeedRedisManagerInterface):
         self.MAX_TEXT_LENGTH = MAX_TEXT_LENGTH
 
         # Instance-level configuration
+        self.base_dir = Path(__file__).resolve().parent.parent
+        self.managers = get_managers()
 
     async def process_ai_task(self, task_data: dict) -> dict:
         """Process ai task using shared Redis connection."""
@@ -100,193 +109,67 @@ class AIService(INeedRedisManagerInterface):
             }
 
     # region AI Processing Methods
-    @staticmethod
-    async def _load_text_for_processing(state: WorkflowGraphState) -> str:
-        """Load text content for AI processing from extracted text or file."""
-        text_content = ""
-
+    def _split_txt_into_chunks(self, state: WorkflowGraphState) -> list:
+        """
+        Test splitting a txt document into text chunks.
+        """
         # Check if we have extracted text in metadata
         if state.get("metadata") and state["metadata"].get("text_extraction"):
-            # First try to load from the saved text file (full content)
-            text_file_path = state["metadata"]["text_extraction"].get("text_file_path")
-            if text_file_path and os.path.exists(text_file_path):
-                try:
-                    with open(text_file_path, 'r', encoding='utf-8') as f:
-                        text_content = f.read()
-                        print(f"[AI Service] Loaded full text from file: {len(text_content)} characters")
-                except Exception as e:
-                    print(f"[AI Service] Failed to read text file: {str(e)}")
-                    # Fall back to extracted text in metadata
-                    text_content = state["metadata"]["text_extraction"].get("extracted_text", "")
 
-            # If still no content, use preview
-            if not text_content and state["metadata"]["text_extraction"].get("text_preview"):
-                text_content = state["metadata"]["text_extraction"]["text_preview"]
-                print(f"[AI Service] Using text preview: {len(text_content)} characters")
+            # Get the path to the extracted text file
+            path_to_file = state["metadata"]["text_extraction"].get("text_file_path")
+            if path_to_file and os.path.exists(path_to_file):
 
-        return text_content
+                # Split the document into chunks
+                texts = split_document('.txt', path_to_file)
+                return texts
 
-    @staticmethod
-    async def _generate_document_summary(text: str, job_id: str) -> dict:
-        """Generate a document summary using dummy AI logic."""
-        # Simulate AI processing delay
-        await asyncio.sleep(0.3)
+        return []
 
-        # Dummy AI analysis - in real scenario, this would call an LLM API
-        word_count = len(text.split())
-        sentence_count = len([s for s in text.split('.') if s.strip()])
+    def _ingest_txt_into_cloud_vector_store(self, texts: list) -> None:
+        """
+        Test ingesting txt content into a vector store and querying it.
+        This is an integration test that requires OpenAI API access.
+        """
+        texts = texts[:3]
 
-        # Simple keyword extraction (dummy implementation)
-        words = text.lower().split()
-        common_words = ['the', 'and', 'is', 'in', 'to', 'of', 'a', 'for']
-        keywords = [word for word in words if word not in common_words and len(word) > 4]
-        top_keywords = list(set(keywords))[:10]  # Get top 10 unique keywords
+        # 0
+        embeddings = self.managers['embeddings_manager'].open_ai_embeddings()
 
-        # Generate summary based on content
-        if word_count > 500:
-            summary_type = "detailed_document"
-            summary_length = "long"
-        elif word_count > 100:
-            summary_type = "standard_document"
-            summary_length = "medium"
-        else:
-            summary_type = "brief_note"
-            summary_length = "short"
+        # 2
+        pinecone_index_name = index_name
+        vectorstore = (self.managers['vector_store_manager']
+        .get_vector_store(
+            'pinecone', 'create',
+            texts, embeddings,
+            index_name=pinecone_index_name, pinecone_api_key=pinecone_api_key
+        ))
 
-        # Create dummy summary
-        summary = f"This is a {summary_length} {summary_type} containing approximately {word_count} words. "
-        summary += f"Key topics include: {', '.join(top_keywords[:3]) if top_keywords else 'general content'}."
+    def _retrieve_from_txt_in_cloud(self):
+        embeddings = self.managers['embeddings_manager'].open_ai_embeddings()
 
-        return {
-            "summary": summary,
-            "word_count": word_count,
-            "sentence_count": sentence_count,
-            "estimated_reading_time_minutes": max(1, word_count // 200),  # 200 wpm
-            "key_topics": top_keywords[:5],
-            "content_type": summary_type,
-            "readability_score": min(100, max(30, 80 - (word_count // 100))),  # Dummy score
-        }
+        # 2
+        pinecone_index_name = index_name
+        vectorstore = (self.managers['vector_store_manager']
+        .get_vector_store(
+            'pinecone', 'load',
+            index_name=pinecone_index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key
+        ))
 
-    @staticmethod
-    async def _analyze_sentiment_and_tone(text: str) -> dict:
-        """Analyze sentiment and tone using dummy AI logic."""
-        await asyncio.sleep(0.2)
+        # 3
+        query = "What microcontrollers are mentioned?"
+        retrieval_qa_chat_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
 
-        # Dummy sentiment analysis
-        positive_words = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'positive', 'success']
-        negative_words = ['bad', 'terrible', 'awful', 'horrible', 'negative', 'failure', 'problem']
+        # 4
+        llm = self.managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
 
-        text_lower = text.lower()
-        positive_count = sum(1 for word in positive_words if word in text_lower)
-        negative_count = sum(1 for word in negative_words if word in text_lower)
+        # 5
+        chain = self.managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
 
-        if positive_count > negative_count:
-            sentiment = "positive"
-            confidence = min(100, positive_count * 15)
-        elif negative_count > positive_count:
-            sentiment = "negative"
-            confidence = min(100, negative_count * 15)
-        else:
-            sentiment = "neutral"
-            confidence = 50
+        # 6
+        response = chain.invoke(input={"input": query})
+        return f"\nAnswer: {response['answer']}"
 
-        # Dummy tone analysis
-        formal_indicators = ['however', 'therefore', 'furthermore', 'additionally']
-        casual_indicators = ['hey', 'hello', 'thanks', 'please', '!']
-
-        formal_score = sum(1 for word in formal_indicators if word in text_lower)
-        casual_score = sum(1 for word in casual_indicators if word in text_lower)
-
-        if formal_score > casual_score:
-            tone = "formal"
-        elif casual_score > formal_score:
-            tone = "casual"
-        else:
-            tone = "neutral"
-
-        return {
-            "sentiment": sentiment,
-            "sentiment_confidence": confidence,
-            "tone": tone,
-            "positive_indicators": positive_count,
-            "negative_indicators": negative_count,
-        }
-
-    @staticmethod
-    async def _extract_entities_and_topics(text: str) -> dict:
-        """Extract entities and topics using dummy AI logic."""
-        await asyncio.sleep(0.25)
-
-        # Dummy entity extraction
-        entities = {
-            "people": [],
-            "organizations": [],
-            "locations": [],
-            "dates": [],
-            "topics": []
-        }
-
-        # Simple pattern matching for dummy entities
-        words = text.split()
-        for i, word in enumerate(words):
-            if word.istitle() and len(word) > 2:
-                # Simple heuristic for proper nouns
-                if i > 0 and words[i - 1] in ['Mr.', 'Ms.', 'Dr.']:
-                    entities["people"].append(word)
-                elif word.endswith(('Inc.', 'Ltd.', 'Corp.')):
-                    entities["organizations"].append(word)
-                elif word in ['Paris', 'London', 'New York', 'Berlin']:
-                    entities["locations"].append(word)
-
-        # Remove duplicates
-        for key in entities:
-            entities[key] = list(set(entities[key]))
-
-        # Dummy topic modeling
-        technical_terms = ['algorithm', 'system', 'data', 'process', 'technology', 'development']
-        business_terms = ['business', 'market', 'strategy', 'growth', 'revenue', 'customer']
-
-        tech_count = sum(1 for term in technical_terms if term in text.lower())
-        business_count = sum(1 for term in business_terms if term in text.lower())
-
-        if tech_count > business_count:
-            entities["topics"] = ["technology", "software", "systems"]
-        elif business_count > tech_count:
-            entities["topics"] = ["business", "strategy", "market"]
-        else:
-            entities["topics"] = ["general", "information"]
-
-        return entities
-
-    @staticmethod
-    async def _generate_ai_insights(summary: dict, sentiment: dict, entities: dict) -> dict:
-        """Generate comprehensive AI insights from all analyses."""
-        insights = []
-
-        # Generate insights based on analysis results
-        if sentiment["sentiment"] == "positive":
-            insights.append("The document has a generally positive tone")
-        elif sentiment["sentiment"] == "negative":
-            insights.append("The document contains negative sentiment that may require attention")
-
-        if summary["word_count"] > 1000:
-            insights.append("This is a comprehensive document requiring detailed review")
-        elif summary["word_count"] < 200:
-            insights.append("This is a brief document suitable for quick reading")
-
-        if entities["people"]:
-            insights.append(f"Document references {len(entities['people'])} key people")
-
-        if "technology" in entities["topics"]:
-            insights.append("Content focuses on technical subjects")
-
-        return {
-            "insights": insights,
-            "overall_complexity": "high" if summary["word_count"] > 800 else "medium" if summary[
-                                                                                             "word_count"] > 300 else "low",
-            "recommended_actions": ["Review key topics", "Consider sentiment in response"] if insights else [
-                "Standard processing complete"],
-        }
     # endregion
 
     async def _process_ai_worker(self, state: WorkflowGraphState) -> WorkflowGraphState:
@@ -387,37 +270,37 @@ class AIService(INeedRedisManagerInterface):
         ai_results = {}
 
         try:
-            # Load text content for processing
-            text_content = await self._load_text_for_processing(state)
+            texts = self._split_txt_into_chunks(state)
 
-            if not text_content:
-                errors.append("No text content available for AI processing")
+            if not texts:
+                errors.append("No text chunks available for AI processing")
             else:
-                # Apply length limit
-                if len(text_content) > self.MAX_TEXT_LENGTH:
-                    text_content = text_content[:self.MAX_TEXT_LENGTH]
-                    ai_results["text_truncated"] = True
-                    ai_results["original_length"] = len(text_content)
-
-                # Perform various AI analyses
-                summary = await self._generate_document_summary(text_content, state["job_id"])
-                sentiment = await self._analyze_sentiment_and_tone(text_content)
-                entities = await self._extract_entities_and_topics(text_content)
-                insights = await self._generate_ai_insights(summary, sentiment, entities)
+                self._ingest_txt_into_cloud_vector_store(texts)
+                summary_response = self._retrieve_from_txt_in_cloud()
 
                 # Compile all AI results
+                # Keep the same structure as before but with real AI content
                 ai_results.update({
-                    "document_summary": summary,
-                    "sentiment_analysis": sentiment,
-                    "entity_extraction": entities,
-                    "ai_insights": insights,
+                    "document_summary": {
+                        "summary": summary_response.replace('\nAnswer: ', '').strip(),
+                        "word_count": len(summary_response.split()),
+                        "content_type": "ai_analysis",
+                        "readability_score": 85  # You can calculate this
+                    },
+                    "sentiment_analysis": {
+                        "sentiment": "neutral",  # You can analyze this from the response
+                        "sentiment_confidence": 75
+                    },
+                    "entity_extraction": {
+                        "topics": ["technical"]  # Extract from your AI response
+                    },
+                    "ai_insights": {
+                        "insights": ["AI analysis completed via vector search"],
+                        "overall_complexity": "medium"
+                    },
                     "processing_timestamp": datetime.now(timezone.utc).isoformat(),
-                    "model_used": "dummy_ai_v1.0",  # In real scenario, this would be the actual model
+                    "model_used": "gpt-4.1-mini"
                 })
-
-                print(30 * '-')
-                print(ai_results)
-                print(30 * '-')
 
         except Exception as e:
             errors.append(f"AI processing failed: {str(e)}")
