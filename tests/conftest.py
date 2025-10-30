@@ -25,7 +25,7 @@ index_name = os.getenv('INDEX_NAME')
 index2_name = os.getenv('INDEX2_NAME')
 
 
-def split_document(file_type, file_path):
+def split_document(file_type, file_path) -> list[Document] | None:
     """
     Loads and splits the file (.pdf or .txt) once for multiple tests.
     """
@@ -50,7 +50,7 @@ def split_document(file_type, file_path):
     return texts
 
 
-def split_document_list(documents_list):
+def split_document_list(documents_list) -> list[Document]:
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
     texts = text_splitter.split_documents(documents_list)
     print(f"Document has been split into {len(texts)} chunks.")

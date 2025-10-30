@@ -9,16 +9,27 @@ class VectorStoreManager:
     """
 
     def __init__(self):
-        """"""
+        """
+        create - PineconeVectorStore.from_documents
+            - Creates a new index and populates it with documents
+            - Used when you want to create a vector store from scratch with your documents
+            - Handles embedding creation and upsert operations
+            - Typically used during initial setup or when adding new data
+
+        load - PineconeVectorStore (constructor)
+            - Connects to an existing index that's already populated
+            - Assumes the Pinecone index already exists and contains vectors
+            - Used for querying/searching against an existing index
+            - More like "connect" than "load" since Pinecone is cloud-based
+        """
         self.vector_store_configs = {
             'faiss': {
-                'load': FAISS.load_local,
                 'create': FAISS.from_documents,
+                'load': FAISS.load_local,
             },
             'pinecone': {
                 'create': PineconeVectorStore.from_documents,
-                # Pinecone doesn't have a load_local equivalent
-                'load': PineconeVectorStore,
+                'load': PineconeVectorStore,    # Pinecone doesn't have a load_local equivalent
             }
         }
 

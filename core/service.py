@@ -109,7 +109,8 @@ class AIService(INeedRedisManagerInterface):
             }
 
     # region AI Processing Methods
-    def _split_txt_into_chunks(self, state: WorkflowGraphState) -> list:
+    @staticmethod
+    def _split_txt_into_chunks(state: WorkflowGraphState) -> list:
         """
         Test splitting a txt document into text chunks.
         """
@@ -158,6 +159,7 @@ class AIService(INeedRedisManagerInterface):
 
         # 3
         retrieval_qa_chat_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
+        rephrase_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/chat-langchain-rephrase")
 
         # 4
         llm = self.managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
@@ -267,6 +269,8 @@ class AIService(INeedRedisManagerInterface):
         # -------------------------------------------------------------------------------
         ai_results = {}
         query = "What microcontrollers are mentioned?"
+
+        chat_history = []  # list of (user, bot) tuples
 
         try:
             texts = self._split_txt_into_chunks(state)
