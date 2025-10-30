@@ -146,7 +146,7 @@ class AIService(INeedRedisManagerInterface):
             index_name=pinecone_index_name, pinecone_api_key=pinecone_api_key
         ))
 
-    def _retrieve_from_txt_in_cloud(self, query):
+    def _retrieve_from_txt_in_cloud(self, query, chat_history=None):
         embeddings = self.managers['embeddings_manager'].open_ai_embeddings()
 
         # 2
@@ -159,17 +159,51 @@ class AIService(INeedRedisManagerInterface):
 
         # 3
         retrieval_qa_chat_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
+
+        # ToDo
         rephrase_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/chat-langchain-rephrase")
 
         # 4
         llm = self.managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
 
         # 5
-        chain = self.managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
+        # ToDo
+        # chain = self.managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
+        if chat_history is None: chat_history = []
+        chain = self.managers['chains_manager'].get_document_retrieval_chain_with_history(
+            llm,
+            retrieval_qa_chat_prompt,
+            rephrase_prompt,
+            vectorstore
+        )
 
         # 6
-        response = chain.invoke(input={"input": query})
-        return f"\nAnswer: {response['answer']}"
+        # ToDo
+        # response = chain.invoke(input={"input": query})
+        responses = {}
+        for key, prompt in query.items():
+            query = prompt
+            print(f'before request {key}: {query}')
+            response = chain.invoke(input={"input": query, "chat_history": chat_history})
+
+            # Store response for later assertions
+            responses[key] = response['answer']
+
+            # ------------------------------------------------------------------------------
+            chat_history.append(('human', query))
+            chat_history.append(('ai', response['answer']))
+
+            print(f'Response for {key}: {response["answer"][:100]}...')
+            print('-' * 10)
+
+        # final
+        # ToDo
+        # return f"\nAnswer: {response['answer']}"
+        return {
+            "responses": responses,
+            "chat_history": chat_history
+        }
+
     # endregion
 
     async def _process_ai_worker(self, state: WorkflowGraphState) -> WorkflowGraphState:
@@ -268,8 +302,16 @@ class AIService(INeedRedisManagerInterface):
         # The real AI processing!
         # -------------------------------------------------------------------------------
         ai_results = {}
-        query = "What microcontrollers are mentioned?"
 
+        # ToDo
+        # query = "What microcontrollers are mentioned?"
+        query = {
+            'query1': "What microcontrollers are mentioned?",
+            'query2': "What did I just ask you?",
+            'query3': "What is the first microcontroller listed in your first reply to me?",
+        }
+
+        # ToDo
         chat_history = []  # list of (user, bot) tuples
 
         try:
@@ -279,20 +321,44 @@ class AIService(INeedRedisManagerInterface):
                 errors.append("No text chunks available for AI processing")
             else:
                 self._ingest_txt_into_cloud_vector_store(texts)
-                summary_response = self._retrieve_from_txt_in_cloud(query)
 
+                # ToDo
+                # summary_response = self._retrieve_from_txt_in_cloud(query)
+                summary_response = self._retrieve_from_txt_in_cloud(query, chat_history)
+
+                # ToDo
+                all_responses = summary_response["responses"]
+                final_chat_history = summary_response["chat_history"]
+
+                # ToDo
                 # Calculate actual word count from the AI response
-                actual_word_count = len(summary_response.split())
+                # actual_word_count = len(summary_response.split())
+                all_text = " ".join(all_responses.values())
+                actual_word_count = len(all_text.split())
 
                 # Compile all AI results
                 # Keep the same structure as before but with real AI content
                 ai_results.update({
                     "document_summary": {
-                        "summary": summary_response.replace('\nAnswer: ', '').strip(),
+                        # ToDo
+                        # "summary": summary_response.replace('\nAnswer: ', '').strip(),
+                        "summary": all_responses['query1'],
+
                         "word_count": actual_word_count,
                         "content_type": "ai_analysis",
                         "readability_score": min(100, max(50, 100 - (actual_word_count // 10)))
                     },
+
+                    # ToDo
+                    "conversational_analysis": {
+                        "initial_response": all_responses['query1'],
+                        "follow_up_responses": {
+                            'follow_up_1': all_responses['query2'],
+                            'follow_up_2': all_responses['query3']
+                        },
+                        "conversation_flow": "multi-turn analysis completed"
+                    },
+
                     "sentiment_analysis": {
                         "sentiment": "neutral",  # You can analyze this from the response
                         "sentiment_confidence": 75
@@ -305,7 +371,10 @@ class AIService(INeedRedisManagerInterface):
                         "overall_complexity": "medium"
                     },
                     "processing_timestamp": datetime.now(timezone.utc).isoformat(),
-                    "model_used": "gpt-4.1-mini"
+                    "model_used": "gpt-4.1-mini",
+
+                    # ToDo
+                    "conversation_turns": len(query)
                 })
 
         except Exception as e:
