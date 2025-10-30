@@ -8,12 +8,16 @@ import os
 import json
 import asyncio
 import logging
+import subprocess
+import sys
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import List, Dict, Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from pinecone import Pinecone
 
 from support.callback_handler import CustomCallbackHandler
 
@@ -416,9 +420,126 @@ class AIService(INeedRedisManagerInterface):
         return datetime.now(timezone.utc).isoformat()
 
 
+# -----------------------------------------------------------------------------------------------
+# FastAPI endpoints for health check, cleanup and test execution
+# -----------------------------------------------------------------------------------------------
+@app.post("/generate-response")
+async def generate_response(request: dict):
+    try:
+        user_prompt = request.get("user_prompt")
+        chat_history = request.get("chat_history", [])
+
+        if not user_prompt:
+            return {"error": "user_prompt is required"}
+
+        managers = get_managers()
+
+        embeddings = managers['embeddings_manager'].open_ai_embeddings()
+
+        # 2
+        pinecone_index_name = index_name
+        vectorstore = (managers['vector_store_manager']
+        .get_vector_store(
+            'pinecone', 'load',
+            index_name=pinecone_index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key
+        ))
+
+        # 3
+        query = user_prompt
+        qa_chat_prompt = managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
+        rephrase_prompt = managers['prompt_manager'].get_prompt_template("langchain-ai/chat-langchain-rephrase")
+
+        # 4
+        llm = managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
+
+        # 5
+        chain = managers['chains_manager'].get_document_retrieval_chain_with_history(
+            llm,
+            qa_chat_prompt,
+            rephrase_prompt,
+            vectorstore
+        )
+
+        # 6
+        response = chain.invoke(input={"input": query, "chat_history": chat_history})
+
+        result = {
+            "query": user_prompt,
+            "result": response['answer'],
+            "source_documents": response.get('context', []),
+            "chat_history": chat_history + [('human', user_prompt), ('ai', response['answer'])]
+        }
+
+        return result
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "ai_processing"}
+
+
+@app.post("/clean")
+async def cleanup_data():
+    """Cleanup Pinecone indexes (POST endpoint)"""
+    all_indexes_in_pinecone = [index_name, index2_name]
+    try:
+        if not pinecone_api_key or not all_indexes_in_pinecone:
+            return {"warning": "Missing Pinecone API key or index names"}
+
+        pc = Pinecone(api_key=pinecone_api_key)
+        existing_indexes = [idx.name for idx in pc.list_indexes()]
+
+        cleanup_results = {}
+        for idx in all_indexes_in_pinecone:
+            if idx in existing_indexes:
+                index = pc.Index(idx)
+                stats = index.describe_index_stats()
+                total_vectors = stats.get('total_vector_count', 0)
+
+                if total_vectors > 0:
+                    index.delete(delete_all=True)
+                    cleanup_results[idx] = f"Cleaned up {total_vectors} vectors"
+                else:
+                    cleanup_results[idx] = "No vectors to clean up"
+            else:
+                cleanup_results[idx] = "Index does not exist"
+
+        return {"success": True, "results": cleanup_results}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.post("/run-tests")
+async def run_tests(request: dict = None):
+    """Run tests programmatically (POST endpoint)"""
+    try:
+        test_pattern = request.get("test_pattern") if request else None
+
+        cmd = [sys.executable, "-m", "pytest", "-v", "--tb=short"]
+        if test_pattern:
+            cmd.extend(["-k", test_pattern])
+        else:
+            cmd.append("tests/")
+
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=".")
+
+        return {
+            "success": result.returncode == 0,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "stdout": "",
+            "stderr": ""
+        }
 
 
 # ----------------------------------------------------------------------------------------------
