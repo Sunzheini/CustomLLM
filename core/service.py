@@ -208,10 +208,17 @@ class AIService(INeedRedisManagerInterface):
         # -------------------------------------------------------------------------------
         ai_results = {}
 
+        # query = {
+        #     'query1': "What microcontrollers are mentioned?",
+        #     'query2': "What did I just ask you?",
+        #     'query3': "What is the first microcontroller listed in your first reply to me?",
+        # }
+
+        # Improved queries for better document analysis
         query = {
-            'query1': "What microcontrollers are mentioned?",
-            'query2': "What did I just ask you?",
-            'query3': "What is the first microcontroller listed in your first reply to me?",
+            'summary': "Provide a comprehensive executive summary of this document, highlighting main topics and key information",
+            'key_points': "Extract the most important technical specifications, features, or key findings mentioned in the document",
+            'analysis': "Identify the document's primary purpose, target audience, structure, and any critical recommendations"
         }
 
         chat_history = []  # list of (user, bot) tuples
@@ -223,51 +230,55 @@ class AIService(INeedRedisManagerInterface):
                 errors.append("No text chunks available for AI processing")
             else:
                 ConcreteAIManager.ingest_txt_into_cloud_vector_store(texts)
-
                 summary_response = ConcreteAIManager.retrieve_from_txt_in_cloud(query, chat_history)
 
                 all_responses = summary_response["responses"]
 
-                all_text = " ".join(all_responses.values())
-                actual_word_count = len(all_text.split())
+                # Create a proper document summary from all responses
+                combined_summary = f"""
+                DOCUMENT OVERVIEW:
+                {all_responses['summary']}
+
+                KEY POINTS:
+                {all_responses['key_points']}
+
+                DOCUMENT ANALYSIS:
+                {all_responses['analysis']}
+                """
+
+                actual_word_count = len(combined_summary.split())
 
                 # Compile all AI results
                 ai_results.update({
                     "document_summary": {
-                        "summary": all_responses['query1'],
-
+                        "summary": combined_summary,
+                        "executive_summary": all_responses['summary'],
+                        "key_points": all_responses['key_points'],
+                        "document_analysis": all_responses['analysis'],
                         "word_count": actual_word_count,
-                        "content_type": "ai_analysis",
+                        "content_type": "comprehensive_analysis",
                         "readability_score": min(100, max(50, 100 - (actual_word_count // 10)))
                     },
-
-                    "conversational_analysis": {
-                        "initial_response": all_responses['query1'],
-                        "follow_up_responses": {
-                            'follow_up_1': all_responses['query2'],
-                            'follow_up_2': all_responses['query3']
-                        },
-                        "conversation_flow": "multi-turn analysis completed"
-                    },
-
                     "sentiment_analysis": {
-                        "sentiment": "neutral",
+                        "sentiment": "neutral",  # You could analyze this from the content
                         "sentiment_confidence": 75
                     },
                     "entity_extraction": {
-                        "topics": ["technical"]
+                        "topics": ["technical_document"]  # Extract actual topics from content
                     },
                     "ai_insights": {
-                        "insights": ["AI analysis completed via vector search"],
-                        "overall_complexity": "medium"
+                        "insights": ["Document analyzed via vector search and multi-perspective queries"],
+                        "overall_complexity": "medium",
+                        "analysis_depth": "comprehensive"
                     },
                     "processing_timestamp": datetime.now(timezone.utc).isoformat(),
                     "model_used": "gpt-4.1-mini",
-                    "conversation_turns": len(query)
+                    "analysis_queries_used": 3
                 })
 
         except Exception as e:
             errors.append(f"AI processing failed: {str(e)}")
+            self.logger.error(f"AI processing error: {str(e)}")
 
         # -------------------------------------------------------------------------------
         if "metadata" not in state or state["metadata"] is None:
