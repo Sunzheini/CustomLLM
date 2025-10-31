@@ -3,23 +3,21 @@ AI Service
 ------------------
 Standalone service that executes tasks using LLM calls.
 Uses RedisManager for consistent connection management.
+
+Note: This service is different from the base ones@api-gateway-service project with
+the real AI processing and 3 additional endpoints for generating responses, cleaning
+up data and running tests.
 """
 import os
 import json
 import asyncio
 import logging
-import subprocess
-import sys
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import List, Dict, Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from pinecone import Pinecone
-
-from support.callback_handler import CustomCallbackHandler
 
 load_dotenv()
 
@@ -31,15 +29,13 @@ from shared_lib.custom_middleware.error_middleware import ErrorMiddleware
 from shared_lib.custom_middleware.logging_middleware import EnhancedLoggingMiddleware
 from shared_lib.logging_management.logging_manager import LoggingManager
 
-from tests.conftest import split_document, get_managers
+# get the concrete manager
+from core.concrete_ai_manager import ConcreteAIManager
+
 
 # Configuration
 AI_QUEUE = os.getenv("AI_QUEUE", "ai_queue")
 AI_CALLBACK_QUEUE = os.getenv("AI_CALLBACK_QUEUE", "ai_callback_queue")
-
-pinecone_api_key = os.getenv('PINECONE_API_KEY')
-index_name = os.getenv('INDEX_NAME')
-index2_name = os.getenv('INDEX_NAME')
 
 # Upload/raw storage location constant (configurable)
 UPLOAD_DIR = Path(os.getenv("PROCESSED_DIR", "storage/processed")).resolve()
@@ -93,8 +89,6 @@ class AIService(INeedRedisManagerInterface):
         self.MAX_TEXT_LENGTH = MAX_TEXT_LENGTH
 
         # Instance-level configuration
-        self.base_dir = Path(__file__).resolve().parent.parent
-        self.managers = get_managers()
 
     async def process_ai_task(self, task_data: dict) -> dict:
         """Process ai task using shared Redis connection."""
@@ -113,100 +107,6 @@ class AIService(INeedRedisManagerInterface):
             }
 
     # region AI Processing Methods
-    @staticmethod
-    def _split_txt_into_chunks(state: WorkflowGraphState) -> list:
-        """
-        Test splitting a txt document into text chunks.
-        """
-        # Check if we have extracted text in metadata
-        if state.get("metadata") and state["metadata"].get("text_extraction"):
-
-            # Get the path to the extracted text file
-            path_to_file = state["metadata"]["text_extraction"].get("text_file_path")
-            if path_to_file and os.path.exists(path_to_file):
-
-                # Split the document into chunks
-                texts = split_document('.txt', path_to_file)
-                return texts
-
-        return []
-
-    def _ingest_txt_into_cloud_vector_store(self, texts: list) -> None:
-        """
-        Test ingesting txt content into a vector store and querying it.
-        This is an integration test that requires OpenAI API access.
-        """
-        # texts = texts[:3]
-
-        # 0
-        embeddings = self.managers['embeddings_manager'].open_ai_embeddings()
-
-        # 2
-        pinecone_index_name = index_name
-        vectorstore = (self.managers['vector_store_manager']
-        .get_vector_store(
-            'pinecone', 'create',
-            texts, embeddings,
-            index_name=pinecone_index_name, pinecone_api_key=pinecone_api_key
-        ))
-
-    def _retrieve_from_txt_in_cloud(self, query, chat_history=None):
-        embeddings = self.managers['embeddings_manager'].open_ai_embeddings()
-
-        # 2
-        pinecone_index_name = index_name
-        vectorstore = (self.managers['vector_store_manager']
-        .get_vector_store(
-            'pinecone', 'load',
-            index_name=pinecone_index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key
-        ))
-
-        # 3
-        retrieval_qa_chat_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
-
-        # ToDo
-        rephrase_prompt = self.managers['prompt_manager'].get_prompt_template("langchain-ai/chat-langchain-rephrase")
-
-        # 4
-        llm = self.managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
-
-        # 5
-        # ToDo
-        # chain = self.managers['chains_manager'].get_document_retrieval_chain(llm, retrieval_qa_chat_prompt, vectorstore)
-        if chat_history is None: chat_history = []
-        chain = self.managers['chains_manager'].get_document_retrieval_chain_with_history(
-            llm,
-            retrieval_qa_chat_prompt,
-            rephrase_prompt,
-            vectorstore
-        )
-
-        # 6
-        # ToDo
-        # response = chain.invoke(input={"input": query})
-        responses = {}
-        for key, prompt in query.items():
-            query = prompt
-            print(f'before request {key}: {query}')
-            response = chain.invoke(input={"input": query, "chat_history": chat_history})
-
-            # Store response for later assertions
-            responses[key] = response['answer']
-
-            # ------------------------------------------------------------------------------
-            chat_history.append(('human', query))
-            chat_history.append(('ai', response['answer']))
-
-            print(f'Response for {key}: {response["answer"][:100]}...')
-            print('-' * 10)
-
-        # final
-        # ToDo
-        # return f"\nAnswer: {response['answer']}"
-        return {
-            "responses": responses,
-            "chat_history": chat_history
-        }
 
     # endregion
 
@@ -307,45 +207,32 @@ class AIService(INeedRedisManagerInterface):
         # -------------------------------------------------------------------------------
         ai_results = {}
 
-        # ToDo
-        # query = "What microcontrollers are mentioned?"
         query = {
             'query1': "What microcontrollers are mentioned?",
             'query2': "What did I just ask you?",
             'query3': "What is the first microcontroller listed in your first reply to me?",
         }
 
-        # ToDo
         chat_history = []  # list of (user, bot) tuples
 
         try:
-            texts = self._split_txt_into_chunks(state)
+            texts = ConcreteAIManager.split_txt_into_chunks(state)
 
             if not texts:
                 errors.append("No text chunks available for AI processing")
             else:
-                self._ingest_txt_into_cloud_vector_store(texts)
+                ConcreteAIManager.ingest_txt_into_cloud_vector_store(texts)
 
-                # ToDo
-                # summary_response = self._retrieve_from_txt_in_cloud(query)
-                summary_response = self._retrieve_from_txt_in_cloud(query, chat_history)
+                summary_response = ConcreteAIManager.retrieve_from_txt_in_cloud(query, chat_history)
 
-                # ToDo
                 all_responses = summary_response["responses"]
-                final_chat_history = summary_response["chat_history"]
 
-                # ToDo
-                # Calculate actual word count from the AI response
-                # actual_word_count = len(summary_response.split())
                 all_text = " ".join(all_responses.values())
                 actual_word_count = len(all_text.split())
 
                 # Compile all AI results
-                # Keep the same structure as before but with real AI content
                 ai_results.update({
                     "document_summary": {
-                        # ToDo
-                        # "summary": summary_response.replace('\nAnswer: ', '').strip(),
                         "summary": all_responses['query1'],
 
                         "word_count": actual_word_count,
@@ -353,7 +240,6 @@ class AIService(INeedRedisManagerInterface):
                         "readability_score": min(100, max(50, 100 - (actual_word_count // 10)))
                     },
 
-                    # ToDo
                     "conversational_analysis": {
                         "initial_response": all_responses['query1'],
                         "follow_up_responses": {
@@ -364,11 +250,11 @@ class AIService(INeedRedisManagerInterface):
                     },
 
                     "sentiment_analysis": {
-                        "sentiment": "neutral",  # You can analyze this from the response
+                        "sentiment": "neutral",
                         "sentiment_confidence": 75
                     },
                     "entity_extraction": {
-                        "topics": ["technical"]  # Extract from your AI response
+                        "topics": ["technical"]
                     },
                     "ai_insights": {
                         "insights": ["AI analysis completed via vector search"],
@@ -376,8 +262,6 @@ class AIService(INeedRedisManagerInterface):
                     },
                     "processing_timestamp": datetime.now(timezone.utc).isoformat(),
                     "model_used": "gpt-4.1-mini",
-
-                    # ToDo
                     "conversation_turns": len(query)
                 })
 
@@ -423,51 +307,31 @@ class AIService(INeedRedisManagerInterface):
 # -----------------------------------------------------------------------------------------------
 # FastAPI endpoints for health check, cleanup and test execution
 # -----------------------------------------------------------------------------------------------
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "ai_processing"}
+
+
 @app.post("/generate-response")
 async def generate_response(request: dict):
     try:
-        user_prompt = request.get("user_prompt")
+        query = request.get("user_prompt")
         chat_history = request.get("chat_history", [])
 
-        if not user_prompt:
+        if not query:
             return {"error": "user_prompt is required"}
 
-        managers = get_managers()
-
-        embeddings = managers['embeddings_manager'].open_ai_embeddings()
-
-        # 2
-        pinecone_index_name = index_name
-        vectorstore = (managers['vector_store_manager']
-        .get_vector_store(
-            'pinecone', 'load',
-            index_name=pinecone_index_name, embedding=embeddings, pinecone_api_key=pinecone_api_key
-        ))
-
-        # 3
-        query = user_prompt
-        qa_chat_prompt = managers['prompt_manager'].get_prompt_template("langchain-ai/retrieval-qa-chat")
-        rephrase_prompt = managers['prompt_manager'].get_prompt_template("langchain-ai/chat-langchain-rephrase")
-
-        # 4
-        llm = managers['llm_manager'].get_llm("gpt-4.1-mini", temperature=0, callbacks=[CustomCallbackHandler()])
-
-        # 5
-        chain = managers['chains_manager'].get_document_retrieval_chain_with_history(
-            llm,
-            qa_chat_prompt,
-            rephrase_prompt,
-            vectorstore
-        )
+        # 0 - 5
+        chain = ConcreteAIManager.get_retrieval_chain()
 
         # 6
         response = chain.invoke(input={"input": query, "chat_history": chat_history})
 
         result = {
-            "query": user_prompt,
+            "query": query,
             "result": response['answer'],
             "source_documents": response.get('context', []),
-            "chat_history": chat_history + [('human', user_prompt), ('ai', response['answer'])]
+            "chat_history": chat_history + [('human', query), ('ai', response['answer'])]
         }
 
         return result
@@ -476,70 +340,16 @@ async def generate_response(request: dict):
         return {"error": str(e)}
 
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "service": "ai_processing"}
-
-
 @app.post("/clean")
 async def cleanup_data():
     """Cleanup Pinecone indexes (POST endpoint)"""
-    all_indexes_in_pinecone = [index_name, index2_name]
-    try:
-        if not pinecone_api_key or not all_indexes_in_pinecone:
-            return {"warning": "Missing Pinecone API key or index names"}
-
-        pc = Pinecone(api_key=pinecone_api_key)
-        existing_indexes = [idx.name for idx in pc.list_indexes()]
-
-        cleanup_results = {}
-        for idx in all_indexes_in_pinecone:
-            if idx in existing_indexes:
-                index = pc.Index(idx)
-                stats = index.describe_index_stats()
-                total_vectors = stats.get('total_vector_count', 0)
-
-                if total_vectors > 0:
-                    index.delete(delete_all=True)
-                    cleanup_results[idx] = f"Cleaned up {total_vectors} vectors"
-                else:
-                    cleanup_results[idx] = "No vectors to clean up"
-            else:
-                cleanup_results[idx] = "Index does not exist"
-
-        return {"success": True, "results": cleanup_results}
-
-    except Exception as e:
-        return {"error": str(e)}
+    await ConcreteAIManager.cleanup_data()
 
 
 @app.post("/run-tests")
 async def run_tests(request: dict = None):
     """Run tests programmatically (POST endpoint)"""
-    try:
-        test_pattern = request.get("test_pattern") if request else None
-
-        cmd = [sys.executable, "-m", "pytest", "-v", "--tb=short"]
-        if test_pattern:
-            cmd.extend(["-k", test_pattern])
-        else:
-            cmd.append("tests/")
-
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=".")
-
-        return {
-            "success": result.returncode == 0,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "returncode": result.returncode
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "stdout": "",
-            "stderr": ""
-        }
+    await ConcreteAIManager.run_tests()
 
 
 # ----------------------------------------------------------------------------------------------
