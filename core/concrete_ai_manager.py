@@ -130,30 +130,50 @@ class ConcreteAIManager:
         """Cleanup Pinecone indexes"""
         all_indexes_in_pinecone = [index_name, index2_name]
         try:
-            if not pinecone_api_key or not all_indexes_in_pinecone:
-                return {"warning": "Missing Pinecone API key or index names"}
+            if not pinecone_api_key:
+                return {"error": "Missing Pinecone API key"}
+
+            if not all_indexes_in_pinecone:
+                return {"error": "No index names configured"}
 
             pc = Pinecone(api_key=pinecone_api_key)
-            existing_indexes = [idx.name for idx in pc.list_indexes()]
+
+            # Get existing indexes
+            existing_indexes = []
+            try:
+                existing_indexes = [idx.name for idx in pc.list_indexes()]
+            except Exception as e:
+                return {"error": f"Failed to list indexes: {str(e)}"}
 
             cleanup_results = {}
             for idx in all_indexes_in_pinecone:
                 if idx in existing_indexes:
-                    index = pc.Index(idx)
-                    stats = index.describe_index_stats()
-                    total_vectors = stats.get('total_vector_count', 0)
+                    try:
+                        index = pc.Index(idx)
+                        stats = index.describe_index_stats()
+                        total_vectors = stats.get('total_vector_count', 0)
 
-                    if total_vectors > 0:
-                        index.delete(delete_all=True)
-                        cleanup_results[idx] = f"Cleaned up {total_vectors} vectors"
-                    else:
-                        cleanup_results[idx] = "No vectors to clean up"
+                        if total_vectors > 0:
+                            index.delete(delete_all=True)
+                            cleanup_results[idx] = f"Cleaned up {total_vectors} vectors"
+                            print(f"[Cleanup] Cleaned up {total_vectors} vectors from {idx}")
+                        else:
+                            cleanup_results[idx] = "No vectors to clean up"
+                            print(f"[Cleanup] No vectors to clean up in {idx}")
+                    except Exception as e:
+                        cleanup_results[idx] = f"Error cleaning index: {str(e)}"
                 else:
                     cleanup_results[idx] = "Index does not exist"
+                    print(f"[Cleanup] Index {idx} does not exist")
 
-            return {"success": True, "results": cleanup_results}
+            return {
+                "success": True,
+                "results": cleanup_results,
+                "message": "Cleanup operation completed"
+            }
 
         except Exception as e:
+            print(f"[Cleanup] Error: {e}")
             return {"error": str(e)}
 
     @staticmethod

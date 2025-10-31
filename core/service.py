@@ -18,6 +18,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from starlette.responses import JSONResponse
 
 load_dotenv()
 
@@ -343,7 +344,28 @@ async def generate_response(request: dict):
 @app.post("/clean")
 async def cleanup_data():
     """Cleanup Pinecone indexes (POST endpoint)"""
-    await ConcreteAIManager.cleanup_data()
+    try:
+        result = await ConcreteAIManager.cleanup_data()
+
+        if result is None:
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Cleanup operation returned no result"}
+            )
+
+        if "error" in result:
+            return JSONResponse(
+                status_code=400,
+                content=result
+            )
+
+        return result
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Cleanup operation failed: {str(e)}"}
+        )
 
 
 @app.post("/run-tests")
