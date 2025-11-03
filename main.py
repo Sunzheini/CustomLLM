@@ -103,6 +103,51 @@ def extract_info(paper_id: str) -> str:
     return f"There is no saved info related to paper id: {paper_id}"
 
 
+# ---------------------------------------------------------------------------
+# Define tools
+# ---------------------------------------------------------------------------
+tools = [
+    {
+        "name": "search_papers",
+        "description": "Search for research papers on arXiv related to a given topic. "
+                       "Input should be a topic string and an optional max_results integer. "
+                       "Returns a list of paper IDs.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "topic": {
+                    "type": "string",
+                    "description": "The topic to search for."
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return.",
+                    "default": 5
+                }
+            },
+            "required": ["topic"]
+        }
+    },
+    {
+        "name": "extract_info",
+        "description": "Extract and return the saved information for a given paper ID.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "paper_id": {
+                    "type": "string",
+                    "description": "The arXiv paper ID to extract information for."
+                }
+            },
+            "required": ["paper_id"]
+        }
+    }
+]
+
+# ToDO: 3.48
+
+
+
 if __name__ == "__main__":
     all_paper_ids = search_papers("computer vision", max_results=2)
     all_paper_ids.append("414567890")  # non-existing paper id for testing
