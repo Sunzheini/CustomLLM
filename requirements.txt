@@ -4,7 +4,9 @@ aiohttp-retry==2.9.1
 aiosignal==1.4.0
 altair==5.5.0
 annotated-types==0.7.0
+anthropic==0.72.0
 anyio==4.10.0
+arxiv==2.3.0
 asgiref==3.9.1
 async-timeout==5.0.1
 attrs==25.3.0
@@ -28,6 +30,7 @@ Deprecated==1.2.18
 dill==0.3.8
 distro==1.9.0
 dnspython==2.8.0
+docstring_parser==0.17.0
 duckduckgo_search==8.1.1
 durationpy==0.10
 email-validator==2.3.0
@@ -36,6 +39,7 @@ faiss-cpu==1.12.0
 fastapi==0.116.1
 fastapi-cli==0.0.14
 fastapi-cloud-cli==0.3.1
+feedparser==6.0.12
 filelock==3.19.1
 firecrawl-py==4.3.6
 Flask==3.1.2
@@ -169,6 +173,7 @@ scikit-learn==1.7.2
 scipy==1.16.1
 sentence-transformers==5.1.0
 sentry-sdk==2.42.1
+sgmllib3k==1.0.0
 shared-lib @ file:///D:/Study/Projects/Github/AegisAI/shared-lib
 shellingham==1.5.4
 simsimd==6.5.3
