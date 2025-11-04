@@ -9,3 +9,5 @@ backend = ExampleBackend()
 frontend = StreamlitFrontend(backend)  # runs in a loop
 
 # Option 2. run a service for AegisAI: use the uvicorn.exe configuration to run
+
+# Option 3. a server on pc / cloud and a client on raspberry pi4
