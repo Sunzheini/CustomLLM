@@ -421,3 +421,4 @@ async def redis_listener(ai_service: AIService):
     finally:
         await pubsub.unsubscribe(AI_QUEUE)
         await pubsub.close()
+
