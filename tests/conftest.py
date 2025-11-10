@@ -37,6 +37,7 @@ def split_document(file_type, file_path) -> list[Document] | None:
         pytest.skip("Only .pdf and .txt files are supported in this test")
         return None
 
+    loader = None
     if file_type == '.pdf':
         loader = PyPDFLoader(file_path)
     elif file_type == '.txt':
@@ -70,11 +71,13 @@ async def run_crawl():
     initial_results = result['results']
     print(f"Initial crawl found {len(initial_results)} results")
 
+    # Create Document objects from crawl results; ensure we use the correct item variable and skip empty content
     all_docs = [
         Document(
-            page_content=result['raw_content'],
-            metadata={"source": result['url']}
-        ) for result in result['results']]
+            page_content=item['raw_content'],
+            metadata={"source": item.get('url')}
+        ) for item in initial_results if item.get('raw_content')
+    ]
     print(f"{len(all_docs)} documents created from initial crawl")
 
     return all_docs
