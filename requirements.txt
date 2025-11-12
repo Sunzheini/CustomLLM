@@ -174,7 +174,7 @@ scipy==1.16.1
 sentence-transformers==5.1.0
 sentry-sdk==2.42.1
 sgmllib3k==1.0.0
-# shared-lib @ file:///D:/Study/Projects/Github/AegisAI/shared-lib
+shared-lib @ file:///D:/Study/Projects/Github/AegisAI/shared-lib
 shellingham==1.5.4
 simsimd==6.5.3
 six==1.17.0
