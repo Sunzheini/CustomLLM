@@ -13,7 +13,7 @@ from embeddings.embeddings_manager import EmbeddingsManager
 from tools.tools_manager import ToolsManager
 from vector_stores.vector_store_manager import VectorStoreManager
 from prompts.prompt_manager import PromptManager
-from llm_manager import LlmManager
+from llms.llm_manager import LlmManager
 from chains.chains_manager import ChainsManager
 from communication.communications_manager import CommunicationsManager
 

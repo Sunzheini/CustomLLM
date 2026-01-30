@@ -12,7 +12,7 @@ from langchain_core.language_models import BaseChatModel
 
 BASE_DIR = Path(__file__).resolve().parent
 
-if os.path.exists(os.path.join(BASE_DIR, '.env')):
+if os.path.exists(os.path.join(BASE_DIR, '../.env')):
     load_dotenv()
 
 
