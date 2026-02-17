@@ -129,8 +129,7 @@
        • Use for: Classification, extraction, structured output, testing
        • Example: "Extract the date from this text" → always same format
 
-    🎨 temperature=0.3-0.5 (Slightly Creative)
-       • Some variation while staying focused
+    🎨 temperature=0.3-0.5 (Slightly Creative) • Some variation while staying focused
        • Good balance for most applications
        • Use for: Q&A, summarization, general chat
        • Example: "Explain this concept" → varied but accurate
