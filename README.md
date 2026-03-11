@@ -111,3 +111,10 @@ You should now see something like: Microsoft (R) C/C++ Optimizing Compiler Versi
 `python -m venv .venv`, `.venv\Scripts\activate`, `pip install -r requirements.txt`
 10. Open the project
 11. As interpreter select .venv/Scripts/python.exe
+
+### A2A
+https://www.youtube.com/watch?v=mFkw3p5qSuA&t=1195s
+24:00
+
+
+
