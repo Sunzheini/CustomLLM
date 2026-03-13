@@ -19,7 +19,9 @@ BASE_URL = "http://localhost:9999"
 
 async def main() -> None:
     async with httpx.AsyncClient() as httpx_client:
+        # --------------------------------------------------------------------------------
         # Initialize A2ACardResolver
+        # --------------------------------------------------------------------------------
         resolver = A2ACardResolver(
             httpx_client=httpx_client,
             base_url=BASE_URL,
@@ -27,7 +29,9 @@ async def main() -> None:
 
         final_agent_card_to_use: AgentCard | None = None
 
+        # --------------------------------------------------------------------------------
         # Phase 1: Fetch the public agent card
+        # --------------------------------------------------------------------------------
         try:
             print(
                 f"Fetching public agent card from: {BASE_URL}{PUBLIC_AGENT_CARD_PATH}"
@@ -42,12 +46,17 @@ async def main() -> None:
             print(f"Error fetching public agent card: {e}")
             raise RuntimeError("Failed to fetch public agent card")
 
+        # --------------------------------------------------------------------------------
         # Phase 2: Initialize A2AClient with the fetched agent card
+        # --------------------------------------------------------------------------------
         client = A2AClient(
             httpx_client=httpx_client, agent_card=final_agent_card_to_use
         )
         print("A2AClient initialized")
 
+        # --------------------------------------------------------------------------------
+        # Phase 3: Send a message to the agent and print the response
+        # --------------------------------------------------------------------------------
         message_payload = Message(
             role=Role.user,
             messageId=str(uuid.uuid4()),
