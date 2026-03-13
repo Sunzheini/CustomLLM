@@ -6,7 +6,11 @@ import httpx
 import uvicorn
 from a2a.server.apps import A2AStarletteApplication
 from a2a.server.request_handlers import DefaultRequestHandler
-from a2a.server.tasks import InMemoryPushNotifier, InMemoryTaskStore
+from a2a.server.tasks import (
+    BasePushNotificationSender,
+    InMemoryPushNotificationConfigStore,
+    InMemoryTaskStore,
+)
 from a2a.types import (
     AgentCapabilities,
     AgentCard,
@@ -34,7 +38,7 @@ def main():
         if not os.getenv("GOOGLE_API_KEY"):
             raise MissingAPIKeyError("GOOGLE_API_KEY environment variable not set.")
 
-        capabilities = AgentCapabilities(streaming=True, pushNotifications=True)
+        capabilities = AgentCapabilities(streaming=True, push_notifications=True)
         skill = AgentSkill(
             id="schedule_pickleball",
             name="Pickleball Scheduling Tool",
@@ -47,17 +51,21 @@ def main():
             description="Helps with scheduling pickleball games",
             url=f"http://{host}:{port}/",
             version="1.0.0",
-            defaultInputModes=KaitlynAgent.SUPPORTED_CONTENT_TYPES,
-            defaultOutputModes=KaitlynAgent.SUPPORTED_CONTENT_TYPES,
+            default_input_modes=KaitlynAgent.SUPPORTED_CONTENT_TYPES,
+            default_output_modes=KaitlynAgent.SUPPORTED_CONTENT_TYPES,
             capabilities=capabilities,
             skills=[skill],
         )
 
         httpx_client = httpx.AsyncClient()
+        push_config_store = InMemoryPushNotificationConfigStore()
+        push_sender = BasePushNotificationSender(httpx_client, push_config_store)
+        
         request_handler = DefaultRequestHandler(
             agent_executor=KaitlynAgentExecutor(),
             task_store=InMemoryTaskStore(),
-            push_notifier=InMemoryPushNotifier(httpx_client),
+            push_config_store=push_config_store,
+            push_sender=push_sender,
         )
         server = A2AStarletteApplication(
             agent_card=agent_card, http_handler=request_handler
