@@ -113,8 +113,4 @@ You should now see something like: Microsoft (R) C/C++ Optimizing Compiler Versi
 11. As interpreter select .venv/Scripts/python.exe
 
 ### A2A
-https://www.youtube.com/watch?v=mFkw3p5qSuA&t=1195s
-24:00
-
-
-
+needed package: `pip install a2a-sdk`
