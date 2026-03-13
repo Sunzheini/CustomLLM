@@ -113,4 +113,8 @@ You should now see something like: Microsoft (R) C/C++ Optimizing Compiler Versi
 11. As interpreter select .venv/Scripts/python.exe
 
 ### A2A
-needed package: `pip install a2a-sdk`
+needed package: 
+`pip install a2a-sdk`
+`pip install google-adk`
+`pip insall crewai`
+if you run `adk web`, a web interface appears
