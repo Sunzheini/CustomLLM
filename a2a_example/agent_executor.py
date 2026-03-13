@@ -6,7 +6,8 @@ from pydantic import BaseModel
 
 
 class GreetingAgent(BaseModel):
-    async def invoke(self) -> str:
+    @staticmethod
+    async def invoke() -> str:
         return "Hello! This is a greeting from the Greeting Agent."
 
 
