@@ -113,4 +113,16 @@ You should now see something like: Microsoft (R) C/C++ Optimizing Compiler Versi
 11. As interpreter select .venv/Scripts/python.exe
 
 ### A2A
-needed package: `pip install a2a-sdk`
+needed package: 
+`pip install a2a-sdk`
+`pip install google-adk`
+`pip insall crewai`
+if you run `adk web`, a web interface appears
+
+**Important:** google-adk 1.27.0 requires OpenTelemetry 1.38.0+ and semantic-conventions 0.59b0+
+If you get an import error for `GEN_AI_INPUT_MESSAGES`, upgrade OpenTelemetry packages:
+```powershell
+pip install --upgrade "opentelemetry-api==1.38.0" "opentelemetry-sdk==1.38.0" "opentelemetry-semantic-conventions==0.59b0" "opentelemetry-exporter-otlp-proto-common==1.38.0" "opentelemetry-exporter-otlp-proto-grpc==1.38.0" "opentelemetry-proto==1.38.0" "opentelemetry-instrumentation==0.59b0" "opentelemetry-instrumentation-asgi==0.59b0" "opentelemetry-instrumentation-fastapi==0.59b0" "opentelemetry-util-http==0.59b0" "opentelemetry-exporter-otlp-proto-http==1.38.0" "pydantic>=2.12.0"
+```
+
+
