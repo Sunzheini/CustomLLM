@@ -1,6 +1,15 @@
 # Events
 Communicate with agents via events.
 
+Channel
+https://www.youtube.com/@CopilotKit
+
+Documentation
+https://docs.ag-ui.com/introduction
+
+Playground
+https://dojo.ag-ui.com/
+
 
 ## Event Types
 - `agent_created`: Triggered when a new agent is created.
