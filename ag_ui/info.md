@@ -11,17 +11,38 @@ Playground
 https://dojo.ag-ui.com/
 
 
-## Event Types
-- `agent_created`: Triggered when a new agent is created.
-- `agent_updated`: Triggered when an existing agent is updated.
-- `agent_deleted`: Triggered when an agent is deleted.
-- `agent_executed`: Triggered when an agent executes a task.
-- `agent_failed`: Triggered when an agent fails to execute a task.
-- `agent_completed`: Triggered when an agent successfully completes a task.
-- `agent_message`: Triggered when an agent sends a message or update.
-- `agent_error`: Triggered when an error occurs within an agent.
-- `agent_status_changed`: Triggered when an agent's status changes (e.g., from idle to active).
-- `agent_interaction`: Triggered when an agent interacts with another agent or an external system.
-- `agent_resource_updated`: Triggered when an agent's resources (e.g., memory, tools) are updated.
-- `agent_performance`: Triggered to report on an agent's performance metrics (e.g., execution time, success rate).
-- `agent_decision_made`: Triggered when an agent makes a decision or takes an action based on its reasoning process.
+## Events
+- RunStarted: Signals the start of an agent run
+- StepStarted: Signals the start of a step within an agent run
+- StepFinished: StepFinished
+- RunFinished: Signals the successful completion of an agent run
+- RunError: Signals an error during an agent run
+
+- TextMessageStart: Signals the start of a text message
+- TextMessageContent: Represents a chunk of content in a streaming text message
+- TextMessageEnd: Signals the end of a text message
+- TextMessageChunk: Convenience event that expands to Start → Content → End automatically
+
+- ToolCallStart: Signals the start of a tool call
+- ToolCallArgs: Represents a chunk of argument data for a tool call
+- ToolCallEnd: Signals the end of a tool call
+- ToolCallResult: Provides the result of a tool call execution
+- ToolCallChunk: Convenience event that expands to Start → Args → End automatically
+
+- StateSnapshot: Provides a complete snapshot of an agent’s state
+- StateDelta: Provides a partial update to an agent’s state using JSON Patch
+- MessagesSnapshot: Provides a snapshot of all messages in a conversation
+
+- ActivitySnapshot: Delivers a complete snapshot of an activity message
+- ActivityDelta: Applies incremental updates to an existing activity using JSON Patch operations
+
+- Raw: Used to pass through events from external systems
+- Custom: Used for application-specific custom events
+
+- ReasoningStart: Marks the start of reasoning
+- ReasoningMessageStart: Signals the start of a reasoning message
+- ReasoningMessageContent: Represents a chunk of content in a streaming reasoning message
+- ReasoningMessageEnd: Signals the end of a reasoning message
+- ReasoningMessageChunk: A convenience event to auto start/close reasoning messages
+- ReasoningEnd: Marks the end of reasoning
+- ReasoningEncryptedValue: Attaches encrypted chain-of-thought reasoning to a message or tool call
