@@ -2,7 +2,7 @@ import os
 import json
 
 from dotenv import load_dotenv
-from langchain_community.tools import TavilySearchResults
+from langchain_tavily import TavilySearch
 from langchain_core.tools import render_text_description
 
 from support.callback_handler import CustomCallbackHandler
@@ -19,7 +19,7 @@ def test_08_execute_ollama_query_search_tool(base_dir, managers):
     # Arrange & Act
     # ----------------------------------------------------------------------------------
     # 1
-    tools = [TavilySearchResults(api_key=tavily_api_key, max_results=3)]
+    tools = [TavilySearch(api_key=tavily_api_key, max_results=3)]
 
     # 3
     query = "search for 3 job postings for an ai engineer using langchain in the bay area on linkedin and list their details"
@@ -59,7 +59,7 @@ def test_08_execute_ollama_query_search_tool(base_dir, managers):
     assert hasattr(action, 'tool'), "Action should have a tool attribute"
 
     # Handle different possible tool names
-    expected_tool_names = ['tavily_search_results_json', 'tavily_search_results', 'search']
+    expected_tool_names = ['tavily_search_results_json', 'tavily_search_results', 'tavily_search', 'search']
     assert action.tool in expected_tool_names, f"Expected one of {expected_tool_names}, got '{action.tool}'"
 
     # 4. Handle tool_input which might be a string or dict

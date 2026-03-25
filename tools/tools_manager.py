@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from dotenv import load_dotenv
-from langchain.agents import tool
+from langchain_core.tools import tool
 
 
 load_dotenv()

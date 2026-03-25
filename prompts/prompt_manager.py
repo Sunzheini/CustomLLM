@@ -3,7 +3,8 @@ from pathlib import Path
 from typing import List
 
 from dotenv import load_dotenv
-from langchain import hub
+from langsmith import Client
+hub = Client()
 
 from langchain_core.prompts import BasePromptTemplate, PromptTemplate, ChatPromptTemplate
 
@@ -67,7 +68,7 @@ class PromptManager:
         prompt = self.__prompt_library[prompt_name]
 
         if prompt["type"] == "hub":
-            return hub.pull(prompt_name)
+            return hub.pull_prompt(prompt_name)
 
         elif prompt["type"] == "local":
             try:
