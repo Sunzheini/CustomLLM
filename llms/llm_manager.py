@@ -55,7 +55,7 @@ class LlmManager:
             }
         }
 
-    def get_llm(self, llm_name: str, temperature: int, callbacks: Optional[List[BaseCallbackHandler]] = None, bind_stop: bool = False) -> BaseChatModel:
+    def get_llm(self, llm_name: str, temperature: int, callbacks: Optional[List[BaseCallbackHandler]] = None, bind_stop: bool = False, streaming: bool = False) -> BaseChatModel:
         """
         Factory method to instantiate configured LLM instances.
 
@@ -134,6 +134,37 @@ class LlmManager:
 
                     # For general use
                     llm = manager.get_llm("gpt-4.1-mini", 0, bind_stop=False)
+
+            streaming (bool): Whether to enable token-by-token streaming.
+
+                When True, the LLM will deliver tokens as they're generated
+                rather than waiting for the complete response. This provides
+                better UX for interactive applications.
+
+                BENEFITS:
+                • Real-time feedback - Users see progress immediately
+                • Lower perceived latency - First tokens arrive quickly
+                • Better for long responses - No waiting for completion
+
+                REQUIREMENTS:
+                • Must provide callbacks to capture streaming tokens
+                • Use StreamingStdOutCallbackHandler or custom handler
+                • Works with both OpenAI and Ollama models
+
+                WHEN TO USE:
+                • Set to True for chat interfaces, interactive demos
+                • Set to False for batch processing, testing
+                • Set to False if you don't need real-time feedback
+
+                Example:
+                    # For streaming chat interface
+                    from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+                    llm = manager.get_llm("gpt-4.1-mini", 0.7, 
+                                         callbacks=[StreamingStdOutCallbackHandler()],
+                                         streaming=True)
+
+                    # For batch processing
+                    llm = manager.get_llm("gpt-4.1-mini", 0, streaming=False)
 
         Returns:
             BaseChatModel: Configured LLM instance ready for inference.
@@ -222,6 +253,10 @@ class LlmManager:
         # Use deepcopy to create a safe copy of parameters
         params = deepcopy(config["params"])
         params["temperature"] = temperature
+
+        # Enable streaming if requested
+        if streaming:
+            params["streaming"] = True
 
         # Add callbacks for monitoring/logging
         if callbacks:
