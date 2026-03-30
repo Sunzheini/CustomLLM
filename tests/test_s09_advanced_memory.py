@@ -270,11 +270,30 @@ def test_30_modern_automatic_memory_management(managers):
     
     # Turn 2 - Memory is loaded automatically!
     print("\n2. Alice: What's my favorite color?")
+    
+    # 🔑 WHAT HAPPENS ON TURN 2:
+    # Step 1: RunnableWithMessageHistory sees session_id="user_alice" (same as Turn 1)
+    # Step 2: Calls get_session_history("user_alice") - returns existing history!
+    # Step 3: History now has 2 messages from Turn 1:
+    #         [HumanMessage("My favorite color is blue"),
+    #          AIMessage("That's great! Blue is a lovely color...")]
+    # Step 4: Passes this history to your chain AUTOMATICALLY
+    # Step 5: Your chain runs with: {"input": "What's my favorite color?", 
+    #                                "chat_history": [HumanMessage(...), AIMessage(...)]}
+    # Step 6: LLM sees the history and can answer correctly!
+    # Step 7: Gets response from LLM
+    # Step 8: AUTOMATICALLY adds new HumanMessage to history
+    # Step 9: AUTOMATICALLY adds new AIMessage to history
+    # Step 10: History now has 4 messages total (2 exchanges)
+    #
+    # YOU STILL JUST CALL invoke()! No manual memory work!
+    
     response2 = chain_with_history.invoke(
         {"input": "What's my favorite color?"},  # Question about previous turn
-        config={"configurable": {"session_id": "user_alice"}}  # Same session
+        config={"configurable": {"session_id": "user_alice"}}  # Same session = loads history!
     )
-    # 🔑 LLM should remember "blue" from Turn 1 (automatic memory!)
+    # 🔑 LLM remembers "blue" from Turn 1 because RunnableWithMessageHistory 
+    #    automatically loaded the history and passed it to the chain!
     print(f"   AI: {response2.content}")
     
     # Test with different session "user_bob"
